@@ -1,0 +1,2822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <!-- iPhone 全屏与防误缩放视口配置 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <!-- iOS Safari 添加到主屏幕原生全屏 App 配置 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="织梦坊" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="theme-color" content="#FBF7F2" />
+  <title>织梦坊 · 钩针交互教学室</title>
+  <!-- 动态生成的 Apple Touch Icon 与 Manifest 将由脚本在加载瞬间自动注入 -->
+  <link id="dynamic-apple-icon" rel="apple-touch-icon" href="" />
+  <link id="dynamic-favicon" rel="icon" type="image/png" href="" />
+  <link id="dynamic-manifest" rel="manifest" href="" />
+
+  <style>
+    /* =====================================================================
+       一、全局设计令牌与 iOS 原生触控基础样式（零外部依赖，离线秒开）
+       ===================================================================== */
+    :root {
+      --bg-cream: #FBF7F2;
+      --bg-card: #FFFFFF;
+      --bg-soft: #F4EDE4;
+      --primary: #D97757;
+      --primary-dark: #BD5F41;
+      --primary-soft: rgba(217, 119, 87, 0.12);
+      --sage: #7A9A7E;
+      --sage-dark: #5E7D62;
+      --sage-soft: rgba(122, 154, 126, 0.14);
+      --mustard: #D9A441;
+      --rose: #D99B9B;
+      --text-main: #3D2E27;
+      --text-muted: #847065;
+      --border: #EAE0D5;
+      --shadow-card: 0 6px 22px -6px rgba(61, 46, 39, 0.08);
+      --shadow-btn: 0 4px 0 #B3573A, 0 8px 16px rgba(217, 119, 87, 0.24);
+      --shadow-btn-sage: 0 4px 0 #57745B, 0 8px 16px rgba(122, 154, 126, 0.24);
+      --radius-xl: 22px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100%;
+      background-color: var(--bg-cream);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      touch-action: manipulation;
+      overscroll-behavior-y: none;
+    }
+
+    /* 桌面端模拟精致居中 App 视窗，iPhone 端全屏无缝贴合 */
+    body {
+      background-image: radial-gradient(#E8DDD0 0.8px, transparent 0.8px);
+      background-size: 18px 18px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 520px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background-color: var(--bg-cream);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 40px rgba(61, 46, 39, 0.08);
+    }
+
+    button, input {
+      font-family: inherit;
+      outline: none;
+    }
+
+    button {
+      border: none;
+      background: none;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: transform 0.12s ease, background-color 0.18s ease, box-shadow 0.12s ease, opacity 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    .no-select {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* 隐藏滚动条但保留流畅滑动 */
+    .scroll-x {
+      display: flex;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      gap: 8px;
+    }
+    .scroll-x::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* =====================================================================
+       二、顶部安全区标题栏 & 底部 iOS 毛玻璃 TabBar
+       ===================================================================== */
+    .top-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      padding: calc(10px + var(--safe-top)) 16px 10px;
+      background: rgba(251, 247, 242, 0.86);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #E28868, #C96446);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 3px 10px rgba(217, 119, 87, 0.28);
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      margin: 0;
+      line-height: 1.2;
+      color: var(--text-main);
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin: 2px 0 0;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      min-width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-main);
+      font-size: 16px;
+    }
+
+    .install-pill {
+      height: 38px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .install-pill.highlight {
+      background: linear-gradient(135deg, #D97757, #E59273);
+      color: #FFFFFF;
+      border-color: transparent;
+      box-shadow: 0 4px 12px rgba(217, 119, 87, 0.3);
+      animation: softPulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes softPulse {
+      0%, 100% { box-shadow: 0 4px 12px rgba(217, 119, 87, 0.28); }
+      50% { box-shadow: 0 4px 18px rgba(217, 119, 87, 0.5); }
+    }
+
+    /* 主内容滚动区（底部为 TabBar 留出充足空间） */
+    .main-content {
+      flex: 1;
+      padding: 14px 14px calc(92px + var(--safe-bottom));
+    }
+
+    /* 底部 iOS 原生毛玻璃 TabBar */
+    .ios-tabbar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 520px;
+      z-index: 45;
+      background: rgba(255, 253, 250, 0.84);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border-top: 1px solid rgba(234, 224, 213, 0.9);
+      padding: 6px 8px calc(6px + var(--safe-bottom));
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+
+    .tabbar-item {
+      min-height: 50px;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 0;
+    }
+
+    .tabbar-item svg {
+      width: 22px;
+      height: 22px;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .tabbar-item.active {
+      color: var(--primary);
+      font-weight: 700;
+      background: var(--primary-soft);
+    }
+
+    .tabbar-item.active svg {
+      transform: scale(1.1);
+    }
+
+    /* =====================================================================
+       三、通用卡片与按钮组件
+       ===================================================================== */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-card);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .section-fade {
+      animation: fadeUp 0.25s ease-out;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-primary { background: var(--primary-soft); color: var(--primary-dark); }
+    .badge-sage { background: var(--sage-soft); color: var(--sage-dark); }
+    .badge-soft { background: var(--bg-soft); color: var(--text-muted); }
+
+    .btn-primary-3d {
+      min-height: 48px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #E18464, #D97757);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: var(--shadow-btn);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 16px;
+    }
+
+    .btn-primary-3d:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #B3573A, 0 2px 6px rgba(217, 119, 87, 0.2);
+    }
+
+    .btn-sage-3d {
+      min-height: 48px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #87A98B, #7A9A7E);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: var(--shadow-btn-sage);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 16px;
+    }
+
+    .btn-sage-3d:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #57745B, 0 2px 6px rgba(122, 154, 126, 0.2);
+    }
+
+    .btn-soft {
+      min-height: 44px;
+      border-radius: 14px;
+      background: var(--bg-soft);
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 0 12px;
+    }
+
+    /* =====================================================================
+       四、模块 1：针法动画工坊样式
+       ===================================================================== */
+    .stitch-pill {
+      flex-shrink: 0;
+      min-height: 44px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .stitch-pill .sym {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      background: var(--bg-soft);
+      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .stitch-pill.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(217, 119, 87, 0.26);
+    }
+
+    .stitch-pill.active .sym {
+      background: rgba(255, 255, 255, 0.24);
+      color: #fff;
+    }
+
+    .stage-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 14px;
+    }
+
+    .stage-canvas-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 12;
+      background: linear-gradient(180deg, #FFFDFB 0%, #F7EFE5 100%);
+      overflow: hidden;
+    }
+
+    .stage-grid-bg {
+      position: absolute;
+      inset: 0;
+      opacity: 0.35;
+      background-image: linear-gradient(to right, #E7DACB 1px, transparent 1px), linear-gradient(to bottom, #E7DACB 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+    }
+
+    .stage-top-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 5;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .step-pill {
+      background: rgba(61, 46, 39, 0.88);
+      color: #fff;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      backdrop-filter: blur(6px);
+    }
+
+    .loops-pill {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 2px 8px rgba(61, 46, 39, 0.06);
+    }
+
+    .loop-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #E2D5C7;
+      transition: all 0.25s ease;
+    }
+
+    .loop-dot.on {
+      background: var(--primary);
+      transform: scale(1.15);
+    }
+
+    .svg-flip-wrap {
+      width: 100%;
+      height: 100%;
+      transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
+    }
+
+    .svg-flip-wrap.mirrored {
+      transform: scaleX(-1);
+    }
+
+    .hook-anim {
+      transition: transform 0.6s cubic-bezier(0.34, 1.42, 0.64, 1);
+    }
+
+    @keyframes dashFlow {
+      to { stroke-dashoffset: -24; }
+    }
+    .dash-flow {
+      stroke-dasharray: 7 5;
+      animation: dashFlow 1.1s linear infinite;
+    }
+
+    @keyframes ringPulse {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.22); opacity: 0.25; }
+    }
+    .ring-pulse {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: ringPulse 1.5s ease-in-out infinite;
+    }
+
+    .stage-progress-track {
+      height: 4px;
+      width: 100%;
+      background: var(--bg-soft);
+    }
+
+    .stage-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--mustard));
+      transition: width 0.3s ease;
+    }
+
+    .cue-box {
+      padding: 13px 15px;
+      background: #FFFBF7;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+    }
+
+    .cue-num {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .cue-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0 0 3px;
+    }
+
+    .cue-desc {
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .studio-controls {
+      padding: 12px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .speed-group {
+      display: inline-flex;
+      background: var(--bg-soft);
+      padding: 3px;
+      border-radius: 12px;
+      gap: 2px;
+    }
+
+    .speed-btn {
+      min-width: 42px;
+      height: 36px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .speed-btn.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 2px 6px rgba(61, 46, 39, 0.08);
+    }
+
+    .swatch-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      box-shadow: inset 0 -2px 4px rgba(0,0,0,0.12);
+    }
+
+    .swatch-btn.active {
+      border-color: var(--text-main);
+      transform: scale(1.12);
+    }
+
+    .mirror-toggle {
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: 12px;
+      background: var(--bg-soft);
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .mirror-toggle.active {
+      background: var(--sage);
+      color: #fff;
+    }
+
+    .tip-banner {
+      background: #F2F7F2;
+      border: 1px solid rgba(122, 154, 126, 0.35);
+      border-radius: var(--radius-lg);
+      padding: 12px 14px;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #3E5441;
+    }
+
+    /* =====================================================================
+       五、模块 2：图解交互沙盘样式
+       ===================================================================== */
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--bg-soft);
+      padding: 4px;
+      border-radius: 16px;
+      margin-bottom: 14px;
+      gap: 4px;
+    }
+
+    .seg-btn {
+      min-height: 42px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .seg-btn.active {
+      background: var(--bg-card);
+      color: var(--primary);
+      box-shadow: 0 2px 8px rgba(61, 46, 39, 0.08);
+    }
+
+    .pattern-chip {
+      flex: 1;
+      min-height: 44px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      text-align: center;
+    }
+
+    .pattern-chip.active {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
+    .chart-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #FAF5EE;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .chart-bubble {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(61, 46, 39, 0.1);
+    }
+
+    .bubble-sym {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* 12x12 DIY 触控画板 */
+    .diy-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 2px;
+      background: #E7DBCE;
+      padding: 4px;
+      border-radius: 14px;
+      touch-action: none;
+      margin-bottom: 12px;
+    }
+
+    .diy-cell {
+      aspect-ratio: 1 / 1;
+      background: #FFFFFF;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .diy-tool-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .diy-tool-btn {
+      min-height: 46px;
+      border-radius: 12px;
+      background: var(--bg-soft);
+      border: 1.5px solid transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      color: var(--text-main);
+    }
+
+    .diy-tool-btn.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .diy-tool-btn span:first-child { font-size: 14px; font-weight: 700; line-height: 1; }
+    .diy-tool-btn span:last-child { font-size: 10px; opacity: 0.9; }
+
+    /* =====================================================================
+       六、模块 3：手作工具箱样式
+       ===================================================================== */
+    .project-input {
+      width: 100%;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-cream);
+      padding: 0 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 12px;
+    }
+
+    .counter-hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background: #FAF4EC;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .big-tap-btn {
+      width: 100%;
+      min-height: 76px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #E28565, #D97757);
+      color: #fff;
+      box-shadow: 0 6px 0 #B3573A, 0 10px 22px rgba(217, 119, 87, 0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .big-tap-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #B3573A, 0 4px 10px rgba(217, 119, 87, 0.22);
+    }
+
+    .yarn-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .yarn-card {
+      min-height: 52px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: var(--bg-cream);
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      text-align: left;
+    }
+
+    .yarn-card.active {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    .search-input {
+      width: 100%;
+      height: 44px;
+      border-radius: 14px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-cream);
+      padding: 0 14px 0 38px;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      background: #fff;
+    }
+
+    .sym-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 12px;
+      border-radius: 14px;
+      background: var(--bg-cream);
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+    }
+
+    /* =====================================================================
+       七、模块 4：趣味通关测验样式
+       ===================================================================== */
+    .quiz-opt {
+      width: 100%;
+      min-height: 52px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: var(--bg-cream);
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-main);
+      margin-bottom: 10px;
+    }
+
+    .quiz-opt .opt-key {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      background: #fff;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .quiz-opt.correct {
+      border-color: var(--sage);
+      background: var(--sage-soft);
+    }
+
+    .quiz-opt.wrong {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    /* =====================================================================
+       八、弹窗与底部 Sheet（添加到桌面引导 & PNG 长按保存）
+       ===================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(45, 34, 29, 0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 12px 12px calc(12px + var(--safe-bottom));
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-card);
+      border-radius: 26px;
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
+      animation: sheetUp 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes sheetUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .install-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 12px;
+      border-radius: 14px;
+      background: var(--bg-cream);
+      border: 1px solid var(--border);
+      margin-bottom: 9px;
+    }
+
+    .step-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Toast 轻提示 */
+    #toast-box {
+      position: fixed;
+      top: calc(68px + var(--safe-top));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 95;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+      width: 90%;
+      max-width: 360px;
+    }
+
+    .toast-item {
+      background: rgba(61, 46, 39, 0.92);
+      color: #fff;
+      padding: 9px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+      animation: toastIn 0.22s ease;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast 轻提示容器 -->
+  <div id="toast-box"></div>
+
+  <div class="app-shell">
+
+    <!-- ===================================================================== -->
+    <!-- 顶部安全区导航栏 -->
+    <!-- ===================================================================== -->
+    <header class="top-header no-select">
+      <div class="brand-group">
+        <div class="brand-logo" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="8.5"/>
+            <path d="M5.5 7.5c4.5 1 9 5.5 10 10.5"/>
+            <path d="M4.5 12.5c4.5-.5 10.5 2 14.5 5"/>
+            <path d="M9 4c-.5 5.5 1.5 11.5 5.5 15.5"/>
+            <path d="M16.5 5.5c-4 2.5-8 7-9.5 12"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">织梦坊</h1>
+          <p class="brand-sub">钩针交互教学室</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="icon-btn" id="global-sound-btn" onclick="toggleSound()" aria-label="音效开关">🔊</button>
+        <button class="install-pill" id="install-guide-btn" onclick="openInstallModal()">
+          <span>📲</span>
+          <span>存到桌面</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===================================================================== -->
+    <!-- 主内容区（4 大模块按 Tab 切换） -->
+    <!-- ===================================================================== -->
+    <main class="main-content">
+
+      <!-- =================================================================== -->
+      <!-- 模块 1：针法动画工坊 -->
+      <!-- =================================================================== -->
+      <section id="view-studio" class="tab-view section-fade">
+        <!-- 横向滑动胶囊选择器（7种基础针法） -->
+        <div id="stitch-capsules" class="scroll-x no-select" style="margin-bottom: 12px; padding-bottom: 2px;"></div>
+
+        <!-- 核心动态 SVG 舞台卡片 -->
+        <div class="stage-card">
+          <div class="stage-canvas-wrap no-select">
+            <div class="stage-grid-bg"></div>
+
+            <!-- 顶部步骤与实时线圈数胶囊 -->
+            <div class="stage-top-overlay">
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <span id="studio-step-pill" class="step-pill">步骤 1 / 4</span>
+                <span id="studio-mirror-pill" class="step-pill hidden" style="background: var(--sage);">左手镜像</span>
+              </div>
+              <div class="loops-pill">
+                <span>线圈</span>
+                <span id="studio-loop-dots" style="display:flex; gap:3px;"></span>
+                <strong id="studio-loop-num" style="color:var(--primary);">1</strong>
+              </div>
+            </div>
+
+            <!-- 动态 SVG 容器 -->
+            <div id="studio-flip-wrap" class="svg-flip-wrap">
+              <svg id="studio-svg" viewBox="0 0 600 450" width="100%" height="100%">
+                <defs>
+                  <linearGradient id="hookMetal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#ECE7E1"/>
+                    <stop offset="50%" stop-color="#FFFFFF"/>
+                    <stop offset="100%" stop-color="#BCB2A6"/>
+                  </linearGradient>
+                  <linearGradient id="hookWood" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#DFAA80"/>
+                    <stop offset="55%" stop-color="#C08256"/>
+                    <stop offset="100%" stop-color="#8F5935"/>
+                  </linearGradient>
+                  <marker id="arrPrimary" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M0,1 L7,4 L0,7 Z" fill="#D97757"/>
+                  </marker>
+                  <marker id="arrSage" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M0,1 L7,4 L0,7 Z" fill="#7A9A7E"/>
+                  </marker>
+                </defs>
+                <g id="svg-base"></g>
+                <g id="svg-yarn"></g>
+                <g id="svg-hook" class="hook-anim">
+                  <path d="M 8,-5.5 L 152,-5.5 C 157,-5.5 160,-2 160,0 C 160,2 157,5.5 152,5.5 L 10,5.5 C 2,5.5 -4,3 -9,0 C -12,-2.5 -12,-8 -6,-10 C -1,-12 6,-11 10,-6.5 L 5,-3.2 C 2,-5.5 -2,-6.5 -4,-4.5 C -5,-3 -3,-1 2,-1 L 8,-5.5 Z" fill="url(#hookMetal)" stroke="#8E8478" stroke-width="1.1"/>
+                  <rect x="146" y="-12" width="136" height="24" rx="12" fill="url(#hookWood)" stroke="#7B4A2A" stroke-width="1.2"/>
+                  <rect x="164" y="-7" width="40" height="14" rx="7" fill="#F2C8A5" opacity="0.32"/>
+                  <text x="184" y="3.5" font-size="9" fill="#FFFDF9" text-anchor="middle" font-weight="700">3.0mm</text>
+                </g>
+                <g id="svg-front-loops"></g>
+                <g id="svg-guides"></g>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 步骤进度细条 -->
+          <div class="stage-progress-track">
+            <div id="studio-progress" class="stage-progress-fill" style="width:25%;"></div>
+          </div>
+
+          <!-- 当前步骤口诀说明 -->
+          <div class="cue-box">
+            <div id="studio-cue-num" class="cue-num">1</div>
+            <div style="flex:1; min-width:0;">
+              <h3 id="studio-cue-title" class="cue-title">穿入针目</h3>
+              <p id="studio-cue-desc" class="cue-desc">钩针从下一针的 V 字辫子下方穿过两根线。</p>
+            </div>
+          </div>
+
+          <!-- 底部大触控播控栏 -->
+          <div class="studio-controls no-select">
+            <div class="ctrl-row">
+              <button class="btn-soft" style="min-width:54px;" onclick="prevStudioStep()" aria-label="上一步">◀</button>
+              <button class="btn-primary-3d" id="studio-play-btn" style="flex:1;" onclick="toggleStudioPlay()">
+                <span id="studio-play-icon">▶</span>
+                <span id="studio-play-text">自动演示</span>
+              </button>
+              <button class="btn-soft" style="min-width:54px;" onclick="nextStudioStep()" aria-label="下一步">▶</button>
+            </div>
+
+            <div class="ctrl-row" style="flex-wrap:wrap; padding-top:2px;">
+              <!-- 倍速 -->
+              <div class="speed-group">
+                <button class="speed-btn" data-speed="0.5" onclick="setStudioSpeed(0.5)">0.5x</button>
+                <button class="speed-btn active" data-speed="1" onclick="setStudioSpeed(1)">1x</button>
+                <button class="speed-btn" data-speed="1.5" onclick="setStudioSpeed(1.5)">1.5x</button>
+              </div>
+              <!-- 左手镜像 -->
+              <button id="mirror-btn" class="mirror-toggle" onclick="toggleMirror()">
+                <span>🪞</span><span>左手镜像</span>
+              </button>
+            </div>
+
+            <!-- 5种治愈系毛线换色球 -->
+            <div class="ctrl-row" style="padding-top:2px;">
+              <span style="font-size:12px; color:var(--text-muted); font-weight:600;">毛线配色</span>
+              <div class="swatch-row">
+                <button class="swatch-btn active" data-color="#D97757" style="background:#D97757;" onclick="setStudioYarn('#D97757','#B05538','#F0A085')" aria-label="陶土粉"></button>
+                <button class="swatch-btn" data-color="#7A9A7E" style="background:#7A9A7E;" onclick="setStudioYarn('#7A9A7E','#58775C','#A5C2A9')" aria-label="鼠尾草绿"></button>
+                <button class="swatch-btn" data-color="#D99B9B" style="background:#D99B9B;" onclick="setStudioYarn('#D99B9B','#B37272','#F0C2C2')" aria-label="柔雾玫瑰"></button>
+                <button class="swatch-btn" data-color="#D9A441" style="background:#D9A441;" onclick="setStudioYarn('#D9A441','#AF7E22','#EFC676')" aria-label="奶酪姜黄"></button>
+                <button class="swatch-btn" data-color="#6E8CA8" style="background:#6E8CA8;" onclick="setStudioYarn('#6E8CA8','#4F6C87','#9CB6CE')" aria-label="雾霾蓝"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 新手避坑小贴士 -->
+        <div class="tip-banner">
+          <strong style="display:block; margin-bottom:3px; color:var(--sage-dark);">🌿 新手避坑小贴士</strong>
+          <span id="studio-tip-text"></span>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- 模块 2：图解交互沙盘 -->
+      <!-- =================================================================== -->
+      <section id="view-sandbox" class="tab-view hidden section-fade">
+        <!-- 顶部分段切换 -->
+        <div class="segmented no-select">
+          <button id="seg-practice" class="seg-btn active" onclick="switchSandboxMode('practice')">经典图解跟练</button>
+          <button id="seg-diy" class="seg-btn" onclick="switchSandboxMode('diy')">自由 DIY 画板</button>
+        </div>
+
+        <!-- 子视图 A：经典图解跟练 -->
+        <div id="sb-practice">
+          <!-- 3套预设图解选择 -->
+          <div style="display:flex; gap:8px; margin-bottom:12px;" class="no-select">
+            <button class="pattern-chip active" data-pat="coaster" onclick="selectPattern('coaster')">圆形杯垫</button>
+            <button class="pattern-chip" data-pat="granny" onclick="selectPattern('granny')">祖母方格</button>
+            <button class="pattern-chip" data-pat="heart" onclick="selectPattern('heart')">治愈爱心</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span id="pat-title">圆形杯垫 · 符号图解</span>
+              <span id="pat-progress-badge" class="badge badge-primary">1 / 42 针</span>
+            </div>
+
+            <!-- 进度条 -->
+            <div style="height:6px; background:var(--bg-soft); border-radius:99px; overflow:hidden; margin-bottom:12px;">
+              <div id="pat-progress-bar" style="height:100%; width:3%; background:linear-gradient(90deg, var(--sage), var(--primary)); transition:width 0.25s;"></div>
+            </div>
+
+            <!-- SVG 图解舞台 -->
+            <div class="chart-stage no-select">
+              <svg id="pattern-svg" viewBox="0 0 560 560" width="100%" height="100%"></svg>
+              <!-- 点击任意符号气泡提示 -->
+              <div class="chart-bubble">
+                <div id="bubble-sym" class="bubble-sym">X</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:12px; font-weight:700; color:var(--primary);">
+                    <span id="bubble-pos">第1圈 · 第1针</span>
+                    <span id="bubble-name" style="color:var(--text-main); margin-left:6px;">短针 (SC)</span>
+                  </div>
+                  <div id="bubble-tip" style="font-size:11.5px; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">在起针环内钩入标准短针</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 当前圈口诀 -->
+            <div style="background:var(--bg-cream); border:1px solid var(--border); border-radius:14px; padding:10px 12px; margin-bottom:12px;">
+              <div style="font-size:12px; font-weight:700; color:var(--text-main);" id="pat-formula">R1: 环形起针 6X = 6针</div>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:3px;" id="pat-cue">点击下方大按钮单手跟练，或点击图解中任意符号跳转。</div>
+            </div>
+
+            <!-- 超大单手跟练操控区 -->
+            <div style="display:grid; grid-template-columns: 1fr 2.4fr 1fr; gap:8px;" class="no-select">
+              <button class="btn-soft" onclick="prevPatternStep()">◀ 上针</button>
+              <button class="btn-primary-3d" style="min-height:52px; font-size:16px;" onclick="nextPatternStep()">下一针 ▶</button>
+              <button class="btn-soft" onclick="resetPatternStep()">重置</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 子视图 B：自由 DIY 画板（12×12） -->
+        <div id="sb-diy" class="hidden">
+          <div class="card">
+            <div class="card-title">
+              <span>自由画板 (12 × 12)</span>
+              <span id="diy-count" class="badge badge-soft">已画 0 针</span>
+            </div>
+
+            <!-- 12x12 触控网格 -->
+            <div id="diy-grid" class="diy-grid no-select"></div>
+
+            <!-- 针法画笔选择 -->
+            <div id="diy-tools" class="diy-tool-grid no-select"></div>
+
+            <!-- 颜色选择 -->
+            <div class="ctrl-row no-select" style="margin-bottom:12px;">
+              <span style="font-size:12px; font-weight:600; color:var(--text-muted);">画笔线色</span>
+              <div class="swatch-row">
+                <button class="swatch-btn diy-color active" data-color="#D97757" style="background:#D97757;" onclick="setDiyColor('#D97757')"></button>
+                <button class="swatch-btn diy-color" data-color="#7A9A7E" style="background:#7A9A7E;" onclick="setDiyColor('#7A9A7E')"></button>
+                <button class="swatch-btn diy-color" data-color="#D99B9B" style="background:#D99B9B;" onclick="setDiyColor('#D99B9B')"></button>
+                <button class="swatch-btn diy-color" data-color="#D9A441" style="background:#D9A441;" onclick="setDiyColor('#D9A441')"></button>
+                <button class="swatch-btn diy-color" data-color="#6E8CA8" style="background:#6E8CA8;" onclick="setDiyColor('#6E8CA8')"></button>
+                <button class="swatch-btn diy-color" data-color="#3D2E27" style="background:#3D2E27;" onclick="setDiyColor('#3D2E27')"></button>
+              </div>
+            </div>
+
+            <!-- 撤销 / 清空 / 保存图片 -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1.6fr; gap:8px;" class="no-select">
+              <button class="btn-soft" onclick="undoDiy()">↩ 撤销</button>
+              <button class="btn-soft" onclick="clearDiy()">清空</button>
+              <button class="btn-sage-3d" onclick="exportDiyImage()">📷 保存图解图片</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- 模块 3：手作工具箱 -->
+      <!-- =================================================================== -->
+      <section id="view-toolbox" class="tab-view hidden section-fade">
+
+        <!-- 1. 智能记行 / 记针器 -->
+        <div class="card">
+          <div class="card-title">
+            <span>智能记行 / 记针器</span>
+            <button class="badge badge-sage" id="tool-sound-badge" onclick="toggleSound()">🔊 音效开</button>
+          </div>
+
+          <!-- 自定义项目名 -->
+          <input id="project-name-input" class="project-input" type="text" placeholder="给当前织物起个名字（如：奶油小杯垫）" onchange="saveCounter()" />
+
+          <!-- 行数进度环 + 目标设置 -->
+          <div class="counter-hero">
+            <div style="position:relative; width:96px; height:96px; flex-shrink:0;">
+              <svg width="96" height="96" viewBox="0 0 100 100" style="transform:rotate(-90deg);">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#EAE0D5" stroke-width="8"/>
+                <circle id="row-ring" cx="50" cy="50" r="42" fill="none" stroke="#D97757" stroke-width="8" stroke-linecap="round" stroke-dasharray="263.89" stroke-dashoffset="263.89" style="transition:stroke-dashoffset 0.35s ease;"/>
+              </svg>
+              <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <span id="cnt-rows" style="font-size:28px; font-weight:800; line-height:1;">0</span>
+                <span style="font-size:11px; color:var(--text-muted); margin-top:3px;">当前行数</span>
+              </div>
+            </div>
+
+            <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:12px; color:var(--text-muted);">目标总行数</span>
+                <input id="target-rows-in" type="number" min="1" max="999" value="20" onchange="updateTargets()" style="width:68px; height:32px; border-radius:10px; border:1px solid var(--border); text-align:center; font-weight:700; color:var(--text-main);" />
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:12px; color:var(--text-muted);">每行针数</span>
+                <input id="target-st-in" type="number" min="1" max="999" value="18" onchange="updateTargets()" style="width:68px; height:32px; border-radius:10px; border:1px solid var(--border); text-align:center; font-weight:700; color:var(--text-main);" />
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding-top:4px; border-top:1px solid var(--border); font-size:12px;">
+                <span style="color:var(--text-muted);">本行记针</span>
+                <strong style="color:var(--sage-dark); font-size:14px;"><span id="cnt-stitches">0</span> / <span id="cnt-st-target">18</span></strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- 超大防误触 +1 主按钮（盲按友好） -->
+          <button class="big-tap-btn no-select" onclick="addRow(1)">
+            <span style="font-size:26px; font-weight:800; line-height:1;">+1 行</span>
+            <span style="font-size:11.5px; opacity:0.9; margin-top:4px;">超大防误触区 · 边钩边盲按</span>
+          </button>
+
+          <!-- 记针 +1 与 撤销/-1/重置 -->
+          <div style="display:grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap:8px;" class="no-select">
+            <button class="btn-sage-3d" style="min-height:44px; font-size:13.5px;" onclick="addStitch(1)">+1 针</button>
+            <button class="btn-soft" onclick="undoCounter()">↩ 撤销</button>
+            <button class="btn-soft" onclick="addRow(-1)">-1 行</button>
+            <button class="btn-soft" style="color:var(--primary-dark);" onclick="resetCounter()">重置</button>
+          </div>
+        </div>
+
+        <!-- 2. 线材与钩针匹配器 -->
+        <div class="card">
+          <div class="card-title">
+            <span>线材与钩针匹配器</span>
+            <span class="badge badge-soft">6 种常用线材</span>
+          </div>
+
+          <div id="yarn-cards" class="yarn-grid no-select"></div>
+
+          <div style="background:var(--bg-cream); border:1px solid var(--border); border-radius:16px; padding:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div>
+                <div style="font-size:11px; color:var(--text-muted);">推荐钩针型号</div>
+                <div id="ym-hook" style="font-size:20px; font-weight:800; color:var(--primary);">2.5mm - 3.0mm</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px; color:var(--text-muted);">对应日系号数</div>
+                <div id="ym-jp" style="font-size:13px; font-weight:700; color:var(--text-main);">4/0 - 5/0 号</div>
+              </div>
+            </div>
+
+            <!-- 视觉粗细对比条 -->
+            <div style="background:#fff; border-radius:12px; border:1px solid var(--border); padding:10px; margin-bottom:10px;">
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:6px;">
+                <span>视觉粗细对比</span>
+                <span id="ym-dia" style="font-weight:600; color:var(--text-main);">线径约 2.0mm</span>
+              </div>
+              <svg id="ym-bar-svg" viewBox="0 0 360 46" width="100%" height="46"></svg>
+            </div>
+
+            <div style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">
+              <strong style="color:var(--sage-dark);">适用作品：</strong><span id="ym-use"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 中/美/英三语针法符号速查表 -->
+        <div class="card">
+          <div class="card-title">
+            <span>中 / 美 / 英 符号速查表</span>
+            <span class="badge badge-primary">实时检索</span>
+          </div>
+
+          <div style="position:relative; margin-bottom:12px;">
+            <span style="position:absolute; left:13px; top:50%; transform:translateY(-50%); font-size:14px; opacity:0.6;">🔍</span>
+            <input id="sym-search" class="search-input" type="text" placeholder="搜索中文 / US / UK（如：短针、sc、dc、加针）" oninput="renderSymbolTable()" />
+          </div>
+
+          <div id="sym-table-list"></div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- 模块 4：趣味通关测验 -->
+      <!-- =================================================================== -->
+      <section id="view-quiz" class="tab-view hidden section-fade">
+        <!-- 答题卡片 -->
+        <div id="quiz-play-card" class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span id="quiz-num-badge" class="badge badge-primary">第 1 / 8 题</span>
+              <span id="quiz-tag-badge" class="badge badge-soft">符号识别</span>
+            </div>
+            <span style="font-size:13px; font-weight:700; color:var(--sage-dark);">得分 <span id="quiz-live-score">0</span></span>
+          </div>
+
+          <div style="height:6px; background:var(--bg-soft); border-radius:99px; overflow:hidden; margin-bottom:16px;">
+            <div id="quiz-bar" style="height:100%; width:12.5%; background:linear-gradient(90deg, var(--sage), var(--primary)); transition:width 0.3s;"></div>
+          </div>
+
+          <h2 id="quiz-question" style="font-size:16px; line-height:1.55; margin:0 0 14px; color:var(--text-main);"></h2>
+
+          <!-- 可选 SVG 图示 -->
+          <div id="quiz-svg-box" class="hidden" style="background:var(--bg-cream); border:1px solid var(--border); border-radius:16px; padding:16px; display:flex; align-items:center; justify-content:center; margin-bottom:14px;"></div>
+
+          <!-- 选项 -->
+          <div id="quiz-options"></div>
+
+          <!-- 解析反馈 -->
+          <div id="quiz-feedback" class="hidden" style="border-radius:16px; padding:14px; margin-top:12px;">
+            <div id="quiz-fb-title" style="font-size:14px; font-weight:700; margin-bottom:4px;"></div>
+            <p id="quiz-fb-exp" style="font-size:13px; line-height:1.55; margin:0 0 12px; color:var(--text-main);"></p>
+            <button id="quiz-next-btn" class="btn-primary-3d" style="width:100%;" onclick="nextQuiz()">下一题 →</button>
+          </div>
+        </div>
+
+        <!-- 段位勋章结算卡片 -->
+        <div id="quiz-result-card" class="card hidden" style="text-align:center; padding:28px 20px;">
+          <div id="rank-icon" style="width:86px; height:86px; border-radius:50%; margin:0 auto 14px; background:linear-gradient(135deg, rgba(217,164,65,0.2), rgba(217,119,87,0.2)); border:2px solid rgba(217,119,87,0.4); display:flex; align-items:center; justify-content:center; font-size:40px;">🧶</div>
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.5px; color:var(--primary); margin-bottom:4px;">手作段位勋章</div>
+          <h2 id="rank-title" style="font-size:26px; margin:0 0 8px;">钩针大师</h2>
+          <p id="rank-desc" style="font-size:13.5px; line-height:1.6; color:var(--text-muted); margin:0 0 20px;"></p>
+
+          <div style="display:flex; justify-content:center; gap:24px; background:var(--bg-cream); border:1px solid var(--border); border-radius:16px; padding:14px; margin-bottom:20px;">
+            <div>
+              <div style="font-size:11px; color:var(--text-muted);">答对题数</div>
+              <div id="rank-correct" style="font-size:22px; font-weight:800; color:var(--sage-dark);">8 / 8</div>
+            </div>
+            <div style="width:1px; background:var(--border);"></div>
+            <div>
+              <div style="font-size:11px; color:var(--text-muted);">最终得分</div>
+              <div id="rank-score" style="font-size:22px; font-weight:800; color:var(--primary);">100 分</div>
+            </div>
+          </div>
+
+          <button class="btn-primary-3d" style="width:100%;" onclick="restartQuiz()">重新挑战测验</button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- 底部 iOS 原生毛玻璃 TabBar -->
+    <!-- ===================================================================== -->
+    <nav class="ios-tabbar no-select" aria-label="底部导航">
+      <button class="tabbar-item active" data-tab="studio" onclick="switchTab('studio')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+        <span>针法</span>
+      </button>
+      <button class="tabbar-item" data-tab="sandbox" onclick="switchTab('sandbox')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="3" x2="12" y2="8"/></svg>
+        <span>图解</span>
+      </button>
+      <button class="tabbar-item" data-tab="toolbox" onclick="switchTab('toolbox')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>工具</span>
+      </button>
+      <button class="tabbar-item" data-tab="quiz" onclick="switchTab('quiz')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>测验</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 弹窗 1：添加到 iPhone 主屏幕图文引导 -->
+  <!-- ===================================================================== -->
+  <div id="install-modal" class="modal-backdrop hidden" onclick="if(event.target===this) closeInstallModal()">
+    <div class="modal-sheet">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img id="install-preview-icon" alt="织梦坊图标" style="width:44px; height:44px; border-radius:11px; border:1px solid var(--border);" />
+          <div>
+            <h3 style="margin:0; font-size:16px;">添加到 iPhone 桌面</h3>
+            <p style="margin:2px 0 0; font-size:12px; color:var(--text-muted);">像原生 App 一样全屏打开、离线可用</p>
+          </div>
+        </div>
+        <button class="icon-btn" style="width:34px; height:34px; min-width:34px;" onclick="closeInstallModal()">✕</button>
+      </div>
+
+      <div class="install-step">
+        <div class="step-circle">1</div>
+        <div style="font-size:13px; line-height:1.45;">
+          在 iPhone <strong>Safari 浏览器</strong>中打开本页面，点击底部栏正中间的 <strong>「分享」图标</strong>（带向上箭头的方框 ⬆️）。
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="step-circle">2</div>
+        <div style="font-size:13px; line-height:1.45;">
+          在弹出的菜单中向上滑动，找到并点击 <strong>「添加到主屏幕」</strong>（带 + 号的方框图标）。
+        </div>
+      </div>
+      <div class="install-step">
+        <div class="step-circle">3</div>
+        <div style="font-size:13px; line-height:1.45;">
+          确认名称为 <strong>「织梦坊」</strong>，点击右上角 <strong>「添加」</strong>，即可在桌面直接点击毛线球图标全屏启动！
+        </div>
+      </div>
+
+      <button class="btn-primary-3d" style="width:100%; margin-top:8px;" onclick="closeInstallModal()">我知道了</button>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 弹窗 2：DIY 图解 PNG 预览（iPhone 长按直接存相册） -->
+  <!-- ===================================================================== -->
+  <div id="export-modal" class="modal-backdrop hidden" onclick="if(event.target===this) closeExportModal()">
+    <div class="modal-sheet" style="text-align:center;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <h3 style="margin:0; font-size:16px;">图解图片已生成</h3>
+        <button class="icon-btn" style="width:34px; height:34px; min-width:34px;" onclick="closeExportModal()">✕</button>
+      </div>
+      <p style="font-size:12.5px; color:var(--text-muted); margin:0 0 12px;">
+        iPhone 用户请 <strong>长按下方图片</strong> 选择「存储到照片」
+      </p>
+      <img id="export-img-preview" alt="我的原创钩针图解" style="width:100%; max-height:52vh; object-fit:contain; border-radius:14px; border:1px solid var(--border); margin-bottom:12px;" />
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+        <button class="btn-soft" onclick="closeExportModal()">返回画板</button>
+        <a id="export-download-link" download="织梦坊_我的钩针图解.png" class="btn-sage-3d" style="text-decoration:none;">下载 PNG</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 核心交互脚本（全自包含，无外部库） -->
+  <!-- ===================================================================== -->
+  <script>
+    /* =========================================================================
+       0. iOS 专属图标生成（180x180 Canvas PNG）、Manifest 注入与音频解锁
+       ========================================================================= */
+    function initIosPwaAssets() {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 180;
+        canvas.height = 180;
+        const ctx = canvas.getContext('2d');
+
+        // 1. 暖米白圆角背景
+        const gradBg = ctx.createLinearGradient(0, 0, 180, 180);
+        gradBg.addColorStop(0, '#FFFBF5');
+        gradBg.addColorStop(1, '#F3E6D6');
+        ctx.fillStyle = gradBg;
+        ctx.fillRect(0, 0, 180, 180);
+
+        // 2. 温柔光晕圆环
+        ctx.beginPath();
+        ctx.arc(90, 92, 68, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(217, 119, 87, 0.12)';
+        ctx.fill();
+
+        // 3. 精致陶土粉毛线团
+        const gradBall = ctx.createRadialGradient(74, 74, 12, 90, 92, 54);
+        gradBall.addColorStop(0, '#EE9B7C');
+        gradBall.addColorStop(0.65, '#D97757');
+        gradBall.addColorStop(1, '#B3573A');
+        ctx.beginPath();
+        ctx.arc(90, 94, 50, 0, Math.PI * 2);
+        ctx.fillStyle = gradBall;
+        ctx.fill();
+
+        // 毛线团交错纹理
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(90, 94, 50, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(255, 248, 240, 0.52)';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        const arcs = [
+          [42, 66, 95, 76, 140, 126],
+          [38, 92, 92, 98, 146, 138],
+          [56, 46, 98, 86, 120, 148],
+          [134, 52, 88, 86, 56, 142],
+          [144, 76, 102, 108, 72, 152]
+        ];
+        arcs.forEach(a => {
+          ctx.beginPath();
+          ctx.moveTo(a[0], a[1]);
+          ctx.quadraticCurveTo(a[2], a[3], a[4], a[5]);
+          ctx.stroke();
+        });
+        ctx.restore();
+
+        // 4. 斜插原木手柄钩针
+        ctx.save();
+        ctx.translate(92, 92);
+        ctx.rotate(-Math.PI / 4);
+        // 金属针杆
+        ctx.strokeStyle = '#ECE6DF';
+        ctx.lineWidth = 7;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-64, -26);
+        ctx.lineTo(14, -26);
+        ctx.stroke();
+        // 钩头
+        ctx.beginPath();
+        ctx.arc(-64, -21, 5, Math.PI, Math.PI * 1.85);
+        ctx.stroke();
+        // 原木/鼠尾草绿手柄
+        ctx.strokeStyle = '#7A9A7E';
+        ctx.lineWidth = 14;
+        ctx.beginPath();
+        ctx.moveTo(14, -26);
+        ctx.lineTo(68, -26);
+        ctx.stroke();
+        ctx.restore();
+
+        // 5. 飘逸毛线尾
+        ctx.beginPath();
+        ctx.moveTo(126, 126);
+        ctx.bezierCurveTo(146, 140, 136, 158, 156, 156);
+        ctx.strokeStyle = '#D97757';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        const iconDataUrl = canvas.toDataURL('image/png');
+        document.getElementById('dynamic-apple-icon').href = iconDataUrl;
+        document.getElementById('dynamic-favicon').href = iconDataUrl;
+        const previewImg = document.getElementById('install-preview-icon');
+        if (previewImg) previewImg.src = iconDataUrl;
+
+        // 动态生成 Web App Manifest DataURL
+        const manifest = {
+          name: '织梦坊 · 钩针交互教学室',
+          short_name: '织梦坊',
+          start_url: '.',
+          display: 'standalone',
+          background_color: '#FBF7F2',
+          theme_color: '#FBF7F2',
+          icons: [{ src: iconDataUrl, sizes: '180x180', type: 'image/png' }]
+        };
+        const manifestUrl = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+        document.getElementById('dynamic-manifest').href = manifestUrl;
+
+        // 检测是否已处于 iPhone 主屏幕独立模式
+        const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+        const installBtn = document.getElementById('install-guide-btn');
+        if (!isStandalone && installBtn) {
+          installBtn.classList.add('highlight');
+        }
+      } catch (err) {
+        // 静默容错
+      }
+    }
+
+    // 全局状态
+    const state = {
+      tab: 'studio',
+      soundOn: true,
+      audioCtx: null,
+      // 针法工坊
+      stitchId: 'sc',
+      stepIdx: 0,
+      playing: false,
+      timer: null,
+      speed: 1,
+      mirror: false,
+      yarn: { main: '#D97757', dark: '#B05538', light: '#F0A085' },
+      // 图解沙盘
+      sbMode: 'practice',
+      patId: 'coaster',
+      patIdx: 0,
+      diyTool: 'X',
+      diyColor: '#D97757',
+      diyData: Array(144).fill(null),
+      diyHistory: [],
+      diyDrawing: false,
+      // 记行器
+      projectName: '',
+      rows: 0,
+      stitches: 0,
+      targetRows: 20,
+      targetStitches: 18,
+      counterHistory: [],
+      // 线材
+      yarnMatchId: 'milk4',
+      // 测验
+      quizIdx: 0,
+      quizScore: 0,
+      quizLocked: false
+    };
+
+    // iOS Safari 音频自动解锁
+    function unlockAudio() {
+      try {
+        if (!state.audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) state.audioCtx = new AC();
+        }
+        if (state.audioCtx && state.audioCtx.state === 'suspended') {
+          state.audioCtx.resume();
+        }
+      } catch (e) {}
+    }
+    window.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+    window.addEventListener('pointerdown', unlockAudio, { once: true, passive: true });
+
+    function playTap(freq = 520, dur = 0.075) {
+      if (!state.soundOn) return;
+      try {
+        unlockAudio();
+        if (!state.audioCtx) return;
+        const ctx = state.audioCtx;
+        const t = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.45, t + dur);
+        gain.gain.setValueAtTime(0.001, t);
+        gain.gain.linearRampToValueAtTime(0.22, t + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + dur + 0.02);
+      } catch (e) {}
+    }
+
+    function playSuccessChime() {
+      if (!state.soundOn) return;
+      playTap(660, 0.11);
+      setTimeout(() => playTap(880, 0.15), 90);
+    }
+
+    function toggleSound() {
+      state.soundOn = !state.soundOn;
+      syncSoundUI();
+      saveCounter();
+      if (state.soundOn) playTap(600, 0.08);
+      showToast(state.soundOn ? '已开启木质轻敲音效' : '已静音');
+    }
+
+    function syncSoundUI() {
+      const btn = document.getElementById('global-sound-btn');
+      const badge = document.getElementById('tool-sound-badge');
+      if (btn) btn.textContent = state.soundOn ? '🔊' : '🔇';
+      if (badge) badge.textContent = state.soundOn ? '🔊 音效开' : '🔇 已静音';
+    }
+
+    function showToast(text) {
+      const box = document.getElementById('toast-box');
+      const el = document.createElement('div');
+      el.className = 'toast-item';
+      el.textContent = text;
+      box.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.25s';
+        setTimeout(() => el.remove(), 260);
+      }, 2000);
+    }
+
+    function openInstallModal() {
+      document.getElementById('install-modal').classList.remove('hidden');
+      playTap(560, 0.06);
+    }
+    function closeInstallModal() {
+      document.getElementById('install-modal').classList.add('hidden');
+    }
+    function closeExportModal() {
+      document.getElementById('export-modal').classList.add('hidden');
+    }
+
+    // 底部 TabBar 切换
+    function switchTab(tabId) {
+      state.tab = tabId;
+      document.querySelectorAll('.tab-view').forEach(v => v.classList.add('hidden'));
+      document.getElementById('view-' + tabId).classList.remove('hidden');
+
+      document.querySelectorAll('.tabbar-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+      });
+
+      if (tabId !== 'studio' && state.playing) toggleStudioPlay();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      playTap(540, 0.05);
+    }
+
+    /* =========================================================================
+       1. 模块一：针法动画工坊（7种核心针法：CH/SL/SC/HDC/DC/INC/DEC）
+       ========================================================================= */
+    const STITCHES = [
+      {
+        id: 'ch', name: '锁针', abbr: 'CH', sym: '◯',
+        tip: '锁针最容易钩得太紧，导致织物底部拉扯弯曲！拉出线圈时手势放轻松，保持每个 V 字大小一致。',
+        steps: [
+          { title: '活结套针', desc: '先打活结套在钩针上，留出适中松紧度，钩针上有 1 个线圈。', loops: 1, hook: { x: 315, y: 215, r: -6 } },
+          { title: '由下往上绕线', desc: '钩针从工作线下方绕至上方，让毛线稳稳挂在钩槽内。', loops: 2, hook: { x: 292, y: 165, r: -22 } },
+          { title: '钩头向下带线', desc: '轻转钩头朝下，顺着活结线圈平稳将工作线向右拉出。', loops: 1, hook: { x: 350, y: 205, r: 12 } },
+          { title: '锁针成型', desc: '整理线圈大小，一个饱满均匀的「V」字形锁针就完成了！', loops: 1, hook: { x: 382, y: 205, r: 0 } }
+        ]
+      },
+      {
+        id: 'sl', name: '引拔针', abbr: 'SL', sym: '•',
+        tip: '引拔针几乎没有高度，常用于圈钩收口。记得用记号扣标出第一针，切勿把引拔针当成下一圈的新针目！',
+        steps: [
+          { title: '穿入首针针目', desc: '钩针不绕线，直接穿入本圈第 1 针的 V 字辫子下方两根线。', loops: 1, hook: { x: 270, y: 258, r: -16 } },
+          { title: '钩住工作线', desc: '钩针从后方挂住工作线，准备一次性连续拉出。', loops: 1, hook: { x: 256, y: 230, r: -4 } },
+          { title: '一次穿过两处', desc: '直接将线拉出针目，并顺势一气呵成穿过钩针上的原线圈。', loops: 1, hook: { x: 325, y: 218, r: 14 } },
+          { title: '平滑收口', desc: '轻轻拉紧工作线，圆圈首尾无缝衔接，几乎不留痕迹。', loops: 1, hook: { x: 358, y: 218, r: 0 } }
+        ]
+      },
+      {
+        id: 'sc', name: '短针', abbr: 'SC', sym: 'X',
+        tip: '拉出第一个线圈时，轻轻向上提拉到与钩针杆齐平的高度，这样钩出来的短针饱满工整、不易越钩越紧。',
+        steps: [
+          { title: '直接穿入针目', desc: '钩针不提前绕线，直接穿过下一针 V 字辫子的两根线。', loops: 1, hook: { x: 272, y: 256, r: -18 } },
+          { title: '绕线拉出线圈', desc: '绕工作线拉回，此时钩针上有 2 个高度一致的线圈。', loops: 2, hook: { x: 290, y: 196, r: 5 } },
+          { title: '再次绕线', desc: '钩针再次从工作线下方绕线，准备合并 2 个线圈。', loops: 2, hook: { x: 272, y: 155, r: -15 } },
+          { title: '一次并针完成', desc: '钩头微向下，将线一次性拉过钩针上的 2 个线圈，短针完成！', loops: 1, hook: { x: 342, y: 180, r: 10 } }
+        ]
+      },
+      {
+        id: 'hdc', name: '中长针', abbr: 'HDC', sym: 'T',
+        tip: '一口气拉过 3 个线圈时最容易勾到线股！钩头记得微微朝下旋转，并且 3 个线圈保持微松。',
+        steps: [
+          { title: '起针绕线 1 次', desc: '入针前先绕线 1 圈，钩针上共有 2 个线圈。', loops: 2, hook: { x: 306, y: 174, r: -20 } },
+          { title: '入针带线成 3 圈', desc: '穿入目标针目，绕线拉出，此时钩针上整齐排列 3 个线圈。', loops: 3, hook: { x: 272, y: 248, r: -8 } },
+          { title: '提拉对齐再绕线', desc: '将线圈轻提至中长针高度，再次绕工作线。', loops: 3, hook: { x: 288, y: 170, r: 4 } },
+          { title: '一口气过 3 圈', desc: '钩头朝下，一次性将线穿过全部 3 个线圈，中长针完成！', loops: 1, hook: { x: 350, y: 165, r: 12 } }
+        ]
+      },
+      {
+        id: 'dc', name: '长针', abbr: 'DC', sym: 'F',
+        tip: '牢记长针黄金口诀「退二再退二」：第一次只退前 2 个线圈，第二次再退最后 2 个线圈。',
+        steps: [
+          { title: '先绕线 1 次', desc: '入针前先绕线 1 圈，保持线圈放松。', loops: 2, hook: { x: 308, y: 164, r: -20 } },
+          { title: '入针带线成 3 圈', desc: '穿入目标针目绕线拉出，此时钩针上有 3 个线圈。', loops: 3, hook: { x: 272, y: 252, r: -10 } },
+          { title: '第一次退 2 线圈', desc: '绕线穿过最前面 2 个线圈，钩针上剩余 2 个线圈。', loops: 2, hook: { x: 300, y: 184, r: 6 } },
+          { title: '再次绕线', desc: '再次从下方绕工作线，准备合并最后 2 个线圈。', loops: 2, hook: { x: 284, y: 142, r: -14 } },
+          { title: '退最后 2 线圈完成', desc: '将线拉过剩余 2 个线圈，挺拔优雅的长针完美成型！', loops: 1, hook: { x: 356, y: 148, r: 12 } }
+        ]
+      },
+      {
+        id: 'inc', name: '加针', abbr: 'INC', sym: 'V',
+        tip: '加针就是在「同一个针眼」里钩入 2 针！钩完第 1 针后针眼会被撑大，第 2 针直接穿入同一个洞即可。',
+        steps: [
+          { title: '同一针目钩第 1 针', desc: '穿入目标针目，先完成第 1 个标准短针。', loops: 2, hook: { x: 274, y: 245, r: -14 } },
+          { title: '完成第 1 针短针', desc: '绕线并针完成第 1 针，注意记住刚刚入针的同一个针眼。', loops: 1, hook: { x: 325, y: 185, r: 8 } },
+          { title: '再次穿入同一针目', desc: '不要跳到下一针！再次穿入刚才同一个针眼并绕线拉出。', loops: 2, hook: { x: 278, y: 248, r: -12 } },
+          { title: '完成第 2 针成 V 字', desc: '绕线一次并针，同一针目长出 2 针，形成对称的 V 字加针！', loops: 1, hook: { x: 354, y: 175, r: 10 } }
+        ]
+      },
+      {
+        id: 'dec', name: '减针', abbr: 'DEC', sym: 'A',
+        tip: '玩偶强烈推荐「隐形减针」：分别只挑相邻两针的前半根线（FLO），钩出来平整无缝、完全不露填充棉！',
+        steps: [
+          { title: '挑第 1 针前半线', desc: '钩针先从第 1 个目标针目的前半根线（FLO）穿入，不急着拉线。', loops: 1, hook: { x: 256, y: 256, r: -20 } },
+          { title: '连挑第 2 针前半线', desc: '顺势继续穿入相邻第 2 针的前半根线，两针套在一起。', loops: 1, hook: { x: 304, y: 252, r: -10 } },
+          { title: '绕线拉过两根前半线', desc: '绕工作线一次性拉过刚才挑起的两根线，钩针上现有 2 个线圈。', loops: 2, hook: { x: 294, y: 194, r: 5 } },
+          { title: '绕线合并二合一', desc: '再次绕线拉过钩针上的 2 个线圈，两针隐形合并为 1 针（A）！', loops: 1, hook: { x: 352, y: 178, r: 12 } }
+        ]
+      }
+    ];
+
+    function renderStitchCapsules() {
+      const box = document.getElementById('stitch-capsules');
+      box.innerHTML = STITCHES.map(st => `
+        <button class="stitch-pill ${st.id === state.stitchId ? 'active' : ''}" onclick="selectStitch('${st.id}')">
+          <span class="sym">${st.sym}</span>
+          <span>${st.name}</span>
+          <span style="font-size:11px; opacity:0.75;">${st.abbr}</span>
+        </button>
+      `).join('');
+    }
+
+    function selectStitch(id) {
+      state.stitchId = id;
+      state.stepIdx = 0;
+      if (state.playing) toggleStudioPlay();
+      renderStitchCapsules();
+      renderStudio();
+      playTap(560, 0.06);
+    }
+
+    function renderStudio() {
+      const st = STITCHES.find(s => s.id === state.stitchId);
+      const step = st.steps[state.stepIdx];
+
+      document.getElementById('studio-step-pill').textContent = `步骤 ${state.stepIdx + 1} / ${st.steps.length}`;
+      document.getElementById('studio-progress').style.width = `${((state.stepIdx + 1) / st.steps.length) * 100}%`;
+      document.getElementById('studio-cue-num').textContent = state.stepIdx + 1;
+      document.getElementById('studio-cue-title').textContent = `${st.name} · ${step.title}`;
+      document.getElementById('studio-cue-desc').textContent = step.desc;
+      document.getElementById('studio-tip-text').textContent = st.tip;
+
+      // 线圈圆点
+      document.getElementById('studio-loop-num').textContent = step.loops;
+      let dots = '';
+      for (let i = 0; i < 3; i++) {
+        dots += `<span class="loop-dot ${i < step.loops ? 'on' : ''}"></span>`;
+      }
+      document.getElementById('studio-loop-dots').innerHTML = dots;
+
+      drawStudioSvg(st, step);
+    }
+
+    function drawStudioSvg(st, step) {
+      const base = document.getElementById('svg-base');
+      const yarn = document.getElementById('svg-yarn');
+      const front = document.getElementById('svg-front-loops');
+      const guides = document.getElementById('svg-guides');
+      const hook = document.getElementById('svg-hook');
+
+      const { main, dark, light } = state.yarn;
+      const hx = step.hook.x, hy = step.hook.y, hr = step.hook.r;
+      hook.setAttribute('transform', `translate(${hx}, ${hy}) rotate(${hr})`);
+
+      // 1. 底层织片 / 锁针链
+      if (st.id === 'ch') {
+        let chSvg = `<path d="M 48 242 Q 72 242 96 234" fill="none" stroke="${main}" stroke-width="8" stroke-linecap="round"/>`;
+        for (let i = 0; i < 4; i++) {
+          const cx = 96 + i * 48;
+          chSvg += `
+            <path d="M ${cx} 234 C ${cx+12} 214, ${cx+38} 214, ${cx+48} 234" fill="none" stroke="${dark}" stroke-width="11" stroke-linecap="round"/>
+            <path d="M ${cx} 234 C ${cx+12} 214, ${cx+38} 214, ${cx+48} 234" fill="none" stroke="${main}" stroke-width="8" stroke-linecap="round"/>
+            <path d="M ${cx+4} 240 C ${cx+18} 254, ${cx+36} 254, ${cx+46} 238" fill="none" stroke="${main}" stroke-width="7.5" stroke-linecap="round"/>
+            <path d="M ${cx+8} 222 C ${cx+20} 217, ${cx+32} 217, ${cx+40} 223" fill="none" stroke="${light}" stroke-width="2.5" stroke-linecap="round"/>
+          `;
+        }
+        base.innerHTML = chSvg;
+      } else {
+        let bSvg = `<rect x="70" y="268" width="460" height="96" rx="22" fill="${main}" opacity="0.1"/>`;
+        for (let i = 0; i < 6; i++) {
+          const x = 90 + i * 70;
+          const isTarget = st.id === 'dec' ? (i === 2 || i === 3) : (i === 2);
+          bSvg += `
+            <rect x="${x+8}" y="274" width="54" height="76" rx="15" fill="${isTarget ? light : main}" opacity="${isTarget ? 0.36 : 0.22}" stroke="${dark}" stroke-width="1.5"/>
+            <ellipse cx="${x+35}" cy="264" rx="26" ry="10" fill="none" stroke="${isTarget ? '#D9A441' : dark}" stroke-width="${isTarget ? 5 : 4}"/>
+            <ellipse cx="${x+35}" cy="262" rx="24" ry="8" fill="none" stroke="${isTarget ? '#F6D178' : main}" stroke-width="3"/>
+          `;
+        }
+        if (st.id === 'dec') {
+          bSvg += `
+            <circle cx="265" cy="264" r="15" fill="#D9A441" opacity="0.22" class="ring-pulse"/>
+            <circle cx="335" cy="264" r="15" fill="#D9A441" opacity="0.22" class="ring-pulse"/>
+          `;
+        } else {
+          bSvg += `<circle cx="265" cy="264" r="17" fill="#D9A441" opacity="0.24" class="ring-pulse"/>`;
+        }
+        base.innerHTML = bSvg;
+      }
+
+      // 2. 活跃工作线与成品新针柱
+      let ySvg = `
+        <path d="M 38 128 C 110 118, 165 152, ${hx-16} ${hy-10}" fill="none" stroke="${dark}" stroke-width="10" stroke-linecap="round" opacity="0.32"/>
+        <path d="M 38 128 C 110 118, 165 152, ${hx-16} ${hy-10}" fill="none" stroke="${main}" stroke-width="7.5" stroke-linecap="round"/>
+        <path d="M 38 128 C 110 118, 165 152, ${hx-16} ${hy-10}" fill="none" stroke="${light}" stroke-width="2" stroke-dasharray="8 10" stroke-linecap="round"/>
+        <circle cx="36" cy="128" r="15" fill="${main}" stroke="${dark}" stroke-width="2"/>
+      `;
+
+      const isLast = state.stepIdx === st.steps.length - 1;
+      if (st.id !== 'ch') {
+        if (st.id === 'inc' && state.stepIdx >= 1) {
+          // 加针：先画第1根已成型短针，最后再画第2根形成 V 字
+          ySvg += `<path d="M 265 260 Q 248 220 250 192" fill="none" stroke="${main}" stroke-width="10" stroke-linecap="round"/>`;
+          if (isLast) {
+            ySvg += `<path d="M 265 260 Q 290 218 ${hx+14} ${hy+6}" fill="none" stroke="${main}" stroke-width="10" stroke-linecap="round"/>`;
+          }
+        } else if (st.id === 'dec' && state.stepIdx >= 2) {
+          // 减针：两针汇聚成 A 字
+          ySvg += `
+            <path d="M 265 260 Q 285 220 ${hx+14} ${hy+6}" fill="none" stroke="${main}" stroke-width="9" stroke-linecap="round"/>
+            <path d="M 335 260 Q 315 220 ${hx+14} ${hy+6}" fill="none" stroke="${main}" stroke-width="9" stroke-linecap="round"/>
+          `;
+        } else if (isLast) {
+          const h = st.id === 'dc' ? 98 : st.id === 'hdc' ? 74 : st.id === 'sc' ? 54 : 26;
+          ySvg += `
+            <path d="M 265 260 C 258 ${260 - h*0.5}, 265 ${260 - h*0.8}, ${hx+14} ${hy+6}" fill="none" stroke="${dark}" stroke-width="13" stroke-linecap="round" opacity="0.28"/>
+            <path d="M 265 260 C 258 ${260 - h*0.5}, 265 ${260 - h*0.8}, ${hx+14} ${hy+6}" fill="none" stroke="${main}" stroke-width="10" stroke-linecap="round"/>
+            <path d="M 265 260 C 258 ${260 - h*0.5}, 265 ${260 - h*0.8}, ${hx+14} ${hy+6}" fill="none" stroke="${light}" stroke-width="2.8" stroke-dasharray="6 8" stroke-linecap="round"/>
+          `;
+        } else if (state.stepIdx >= 1) {
+          ySvg += `<path d="M 265 260 Q ${(265+hx)/2 - 12} ${(260+hy)/2} ${hx+16} ${hy+4}" fill="none" stroke="${main}" stroke-width="8" stroke-linecap="round"/>`;
+        }
+      }
+      yarn.innerHTML = ySvg;
+
+      // 3. 钩针杆上的前置线圈
+      let lSvg = '';
+      const rad = (hr * Math.PI) / 180;
+      for (let i = 0; i < step.loops; i++) {
+        const dist = 20 + i * 21;
+        const lx = hx + Math.cos(rad) * dist;
+        const ly = hy + Math.sin(rad) * dist;
+        lSvg += `
+          <g transform="translate(${lx}, ${ly}) rotate(${hr})">
+            <ellipse cx="0" cy="0" rx="6.5" ry="15" fill="none" stroke="${dark}" stroke-width="7.5"/>
+            <ellipse cx="0" cy="0" rx="6.5" ry="15" fill="none" stroke="${main}" stroke-width="5"/>
+            <path d="M -2 -12 A 6 14 0 0 1 3 10" fill="none" stroke="${light}" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        `;
+      }
+      front.innerHTML = lSvg;
+
+      // 4. 动态引导箭头
+      if (isLast) {
+        guides.innerHTML = `<path d="M ${hx-42} ${hy-20} Q ${hx-8} ${hy-42} ${hx+36} ${hy-18}" fill="none" stroke="#7A9A7E" stroke-width="3.2" class="dash-flow" marker-end="url(#arrSage)"/>`;
+      } else {
+        guides.innerHTML = `<path d="M ${hx-48} ${hy+24} C ${hx-54} ${hy-30}, ${hx-4} ${hy-46}, ${hx+14} ${hy-16}" fill="none" stroke="#D97757" stroke-width="3.2" class="dash-flow" marker-end="url(#arrPrimary)"/>`;
+      }
+    }
+
+    function nextStudioStep() {
+      const st = STITCHES.find(s => s.id === state.stitchId);
+      state.stepIdx = (state.stepIdx + 1) % st.steps.length;
+      renderStudio();
+      playTap(580, 0.05);
+    }
+
+    function prevStudioStep() {
+      const st = STITCHES.find(s => s.id === state.stitchId);
+      state.stepIdx = (state.stepIdx - 1 + st.steps.length) % st.steps.length;
+      renderStudio();
+      playTap(480, 0.05);
+    }
+
+    function toggleStudioPlay() {
+      state.playing = !state.playing;
+      document.getElementById('studio-play-icon').textContent = state.playing ? '⏸' : '▶';
+      document.getElementById('studio-play-text').textContent = state.playing ? '暂停演示' : '自动演示';
+      clearInterval(state.timer);
+      if (state.playing) {
+        state.timer = setInterval(nextStudioStep, Math.round(1650 / state.speed));
+      }
+    }
+
+    function setStudioSpeed(s) {
+      state.speed = s;
+      document.querySelectorAll('.speed-btn').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.speed) === s));
+      if (state.playing) {
+        clearInterval(state.timer);
+        state.timer = setInterval(nextStudioStep, Math.round(1650 / state.speed));
+      }
+      playTap(600, 0.05);
+    }
+
+    function setStudioYarn(main, dark, light) {
+      state.yarn = { main, dark, light };
+      document.querySelectorAll('#view-studio .swatch-btn').forEach(b => b.classList.toggle('active', b.dataset.color === main));
+      renderStudio();
+      playTap(620, 0.05);
+    }
+
+    function toggleMirror() {
+      state.mirror = !state.mirror;
+      document.getElementById('studio-flip-wrap').classList.toggle('mirrored', state.mirror);
+      document.getElementById('studio-mirror-pill').classList.toggle('hidden', !state.mirror);
+      document.getElementById('mirror-btn').classList.toggle('active', state.mirror);
+      showToast(state.mirror ? '已切换左手镜像模式' : '已恢复右手标准模式');
+      playTap(540, 0.06);
+    }
+
+    /* =========================================================================
+       2. 模块二：图解交互沙盘（经典图解跟练 + 12x12 DIY 画板）
+       ========================================================================= */
+    const R_COLORS = ['#D97757', '#7A9A7E', '#D9A441', '#6E8CA8'];
+
+    function svgSymPath(sym, color) {
+      switch (sym) {
+        case 'X': return `<path d="M-5,-5 L5,5 M5,-5 L-5,5" stroke="${color}" stroke-width="2.3" stroke-linecap="round"/>`;
+        case 'V': return `<path d="M-5,-5 L0,5 L5,-5" fill="none" stroke="${color}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>`;
+        case 'A': return `<path d="M-5,5 L0,-5 L5,5" fill="none" stroke="${color}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>`;
+        case 'T': return `<path d="M0,6 L0,-6 M-5,-6 L5,-6" stroke="${color}" stroke-width="2.2" stroke-linecap="round"/>`;
+        case 'F': return `<path d="M0,7 L0,-7 M-5,-7 L5,-7 M-3.5,-1 L3.5,1" stroke="${color}" stroke-width="2.1" stroke-linecap="round"/>`;
+        case 'E': return `<path d="M0,8 L0,-8 M-5,-8 L5,-8 M-3.5,-2.5 L3.5,-0.5 M-3.5,2 L3.5,4" stroke="${color}" stroke-width="1.9" stroke-linecap="round"/>`;
+        case '◯': return `<ellipse cx="0" cy="0" rx="5.5" ry="3.5" fill="none" stroke="${color}" stroke-width="2.1"/>`;
+        case '•': return `<circle cx="0" cy="0" r="3.8" fill="${color}"/>`;
+        default: return `<text y="4" text-anchor="middle" font-size="11" font-weight="bold" fill="${color}">${sym}</text>`;
+      }
+    }
+
+    function createPatterns() {
+      const cx = 280, cy = 280;
+      // 1. 圆形杯垫
+      const coaster = [];
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / 6;
+        coaster.push({ r: 1, n: i + 1, sym: 'X', name: '短针 (SC)', formula: 'R1: 环形起针 6X = 6针', tip: '环内钩 6 个短针，拉紧线尾闭合圆心。', x: cx + Math.cos(a) * 62, y: cy + Math.sin(a) * 62, rot: a * 180 / Math.PI + 90 });
+      }
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / 6;
+        coaster.push({ r: 2, n: i + 1, sym: 'V', name: '短针加针 (INC)', formula: 'R2: 6V（每针加针）= 12针', tip: '同一针目内钩 2 个短针，共加 6 次。', x: cx + Math.cos(a) * 124, y: cy + Math.sin(a) * 124, rot: a * 180 / Math.PI + 90 });
+      }
+      for (let i = 0; i < 12; i++) {
+        const isV = i % 2 === 1;
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / 12;
+        coaster.push({ r: 3, n: i + 1, sym: isV ? 'V' : 'X', name: isV ? '加针 (V)' : '短针 (X)', formula: 'R3: (X, V) × 6 = 18针', tip: isV ? '同一针目钩 2 个短针，保持圆片平展。' : '钩 1 个标准短针。', x: cx + Math.cos(a) * 186, y: cy + Math.sin(a) * 186, rot: a * 180 / Math.PI + 90 });
+      }
+      for (let i = 0; i < 18; i++) {
+        const isV = i % 3 === 1;
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / 18;
+        coaster.push({ r: 4, n: i + 1, sym: isV ? 'V' : 'X', name: isV ? '错位加针 (V)' : '短针 (X)', formula: 'R4: (X, V, X) × 6 = 24针', tip: isV ? '错位加针让圆片更圆润无棱角！' : '钩 1 个标准短针。', x: cx + Math.cos(a) * 240, y: cy + Math.sin(a) * 240, rot: a * 180 / Math.PI + 90 });
+      }
+
+      // 2. 祖母方格
+      const granny = [];
+      const sides = [{ dx: 0, dy: -1, rot: 0 }, { dx: 1, dy: 0, rot: 90 }, { dx: 0, dy: 1, rot: 180 }, { dx: -1, dy: 0, rot: 270 }];
+      let idx1 = 1;
+      sides.forEach((s, si) => {
+        const px = -s.dy, py = s.dx;
+        for (let k = -1; k <= 1; k++) {
+          granny.push({ r: 1, n: idx1++, sym: 'F', name: '长针 (DC)', formula: 'R1: (3F, 2CH) × 4', tip: '环内钩 3 个长针组成水草花样。', x: cx + s.dx * 78 + px * k * 24, y: cy + s.dy * 78 + py * k * 24, rot: s.rot });
+        }
+        const ca = -Math.PI / 4 + si * Math.PI / 2;
+        granny.push({ r: 1, n: idx1++, sym: '◯', name: '转角 2 锁针', formula: 'R1: (3F, 2CH) × 4', tip: '钩 2 个锁针形成 90° 转角洞眼。', x: cx + Math.cos(ca) * 116, y: cy + Math.sin(ca) * 116, rot: ca * 180 / Math.PI + 90 });
+      });
+      let idx2 = 1;
+      for (let ci = 0; ci < 4; ci++) {
+        const ca = -Math.PI / 4 + ci * Math.PI / 2;
+        ['F', 'F', 'F', '◯', 'F', 'F', 'F'].forEach((sym, si) => {
+          const a = ca + (si - 3) * 0.14;
+          const dist = sym === '◯' ? 224 : 176;
+          granny.push({ r: 2, n: idx2++, sym, name: sym === '◯' ? '转角 2 锁针' : '转角长针组', formula: 'R2: 每角 (3F, 2CH, 3F)', tip: sym === '◯' ? '转角顶点钩 2 锁针撑起方角。' : '全部入针在上一圈转角大洞眼里。', x: cx + Math.cos(a) * dist, y: cy + Math.sin(a) * dist, rot: a * 180 / Math.PI + 90 });
+        });
+      }
+
+      // 3. 治愈小爱心
+      const heart = [
+        { sym: '◯', name: '起立 3 锁针', tip: '环形起针后钩 3 锁针起立。', x: 280, y: 175, rot: 0 },
+        { sym: 'E', name: '长长针 (TR)', tip: '第 1 个长长针，撑起右肩弧度。', x: 328, y: 145, rot: 22 },
+        { sym: 'E', name: '长长针 (TR)', tip: '第 2 个长长针，保持饱满。', x: 378, y: 158, rot: 48 },
+        { sym: 'E', name: '长长针 (TR)', tip: '第 3 个长长针，过渡到侧边。', x: 408, y: 198, rot: 76 },
+        { sym: 'F', name: '长针 (DC)', tip: '切换长针，轮廓平滑收窄。', x: 405, y: 248, rot: 105 },
+        { sym: 'F', name: '长针 (DC)', tip: '第 2 个长针。', x: 382, y: 292, rot: 125 },
+        { sym: 'F', name: '长针 (DC)', tip: '第 3 个长针，接近心尖。', x: 348, y: 332, rot: 142 },
+        { sym: '◯', name: '过渡 1 锁针', tip: '钩 1 锁针让心尖更立体。', x: 314, y: 365, rot: 160 },
+        { sym: 'E', name: '心尖长长针', tip: '底部 1 个长长针勾勒尖尖心底！', x: 280, y: 392, rot: 180 },
+        { sym: '◯', name: '过渡 1 锁针', tip: '对称钩 1 锁针转向左侧。', x: 246, y: 365, rot: 200 },
+        { sym: 'F', name: '长针 (DC)', tip: '左侧第 1 个长针。', x: 212, y: 332, rot: 218 },
+        { sym: 'F', name: '长针 (DC)', tip: '左侧第 2 个长针。', x: 178, y: 292, rot: 235 },
+        { sym: 'F', name: '长针 (DC)', tip: '左侧第 3 个长针。', x: 155, y: 248, rot: 255 },
+        { sym: 'E', name: '长长针 (TR)', tip: '切换回长长针撑起左肩。', x: 152, y: 198, rot: 284 },
+        { sym: 'E', name: '长长针 (TR)', tip: '第 2 个长长针。', x: 182, y: 158, rot: 312 },
+        { sym: 'E', name: '长长针 (TR)', tip: '第 3 个长长针回到凹槽。', x: 232, y: 145, rot: 338 },
+        { sym: '•', name: '3锁针+引拔收口', tip: '3 锁针回环内引拔，拉紧圆心完成！', x: 280, y: 218, rot: 0 }
+      ].map((it, i) => ({ ...it, r: 1, n: i + 1, formula: '一圈成型：3CH, 3E, 3F, CH, E, CH, 3F, 3E, 3CH, SL' }));
+
+      return {
+        coaster: { title: '圆形杯垫 · 符号图解', list: coaster },
+        granny: { title: '经典祖母方格 · 符号图解', list: granny },
+        heart: { title: '治愈小爱心 · 符号图解', list: heart }
+      };
+    }
+
+    const PATTERNS = createPatterns();
+
+    function switchSandboxMode(mode) {
+      state.sbMode = mode;
+      document.getElementById('sb-practice').classList.toggle('hidden', mode !== 'practice');
+      document.getElementById('sb-diy').classList.toggle('hidden', mode !== 'diy');
+      document.getElementById('seg-practice').classList.toggle('active', mode === 'practice');
+      document.getElementById('seg-diy').classList.toggle('active', mode === 'diy');
+      playTap(540, 0.05);
+    }
+
+    function selectPattern(id) {
+      state.patId = id;
+      state.patIdx = 0;
+      document.querySelectorAll('.pattern-chip').forEach(c => c.classList.toggle('active', c.dataset.pat === id));
+      renderPattern();
+      playTap(560, 0.06);
+    }
+
+    function renderPattern() {
+      const pat = PATTERNS[state.patId];
+      const cur = pat.list[state.patIdx];
+      document.getElementById('pat-title').textContent = pat.title;
+      document.getElementById('pat-progress-badge').textContent = `${state.patIdx + 1} / ${pat.list.length} 针`;
+      document.getElementById('pat-progress-bar').style.width = `${((state.patIdx + 1) / pat.list.length) * 100}%`;
+      document.getElementById('pat-formula').textContent = cur.formula;
+      document.getElementById('pat-cue').textContent = `当前：第 ${cur.r} 圈第 ${cur.n} 针 · ${cur.tip}`;
+
+      updateBubble(cur);
+
+      const svg = document.getElementById('pattern-svg');
+      let html = '';
+      if (state.patId === 'coaster') {
+        [62, 124, 186, 240].forEach((rad, i) => {
+          html += `<circle cx="280" cy="280" r="${rad}" fill="none" stroke="${R_COLORS[i]}" stroke-width="1.2" stroke-dasharray="4 5" opacity="0.35"/>`;
+        });
+        html += `<circle cx="280" cy="280" r="21" fill="#D97757" opacity="0.14" stroke="#D97757" stroke-width="2"/><text x="280" y="284" text-anchor="middle" font-size="11" fill="#D97757" font-weight="700">MR</text>`;
+      } else if (state.patId === 'granny') {
+        html += `<rect x="195" y="195" width="170" height="170" rx="18" fill="none" stroke="#D97757" stroke-width="1.4" stroke-dasharray="5 5" opacity="0.35"/>`;
+        html += `<rect x="108" y="108" width="344" height="344" rx="28" fill="none" stroke="#7A9A7E" stroke-width="1.4" stroke-dasharray="5 5" opacity="0.35"/>`;
+        html += `<circle cx="280" cy="280" r="21" fill="#D97757" opacity="0.14" stroke="#D97757" stroke-width="2"/><text x="280" y="284" text-anchor="middle" font-size="11" fill="#D97757" font-weight="700">MR</text>`;
+      } else {
+        html += `<path d="M 280 218 C 280 155, 165 130, 152 215 C 142 285, 225 348, 280 392 C 335 348, 418 285, 408 215 C 395 130, 280 155, 280 218 Z" fill="#D99B9B" opacity="0.13" stroke="#D99B9B" stroke-width="2" stroke-dasharray="6 5"/>`;
+        html += `<circle cx="280" cy="252" r="20" fill="#D97757" opacity="0.14" stroke="#D97757" stroke-width="2"/><text x="280" y="256" text-anchor="middle" font-size="11" fill="#D97757" font-weight="700">MR</text>`;
+      }
+
+      pat.list.forEach((st, i) => {
+        const col = R_COLORS[(st.r - 1) % R_COLORS.length];
+        const isCur = i === state.patIdx;
+        const isDone = i < state.patIdx;
+        const op = isDone ? 0.42 : 1;
+        html += `
+          <g transform="translate(${st.x}, ${st.y})" style="cursor:pointer;" onclick="jumpPattern(${i})">
+            ${isCur ? `<circle r="22" fill="${col}" opacity="0.24" class="ring-pulse"/>` : ''}
+            <circle r="${isCur ? 16 : 13.5}" fill="${isCur ? col : '#FFFFFF'}" stroke="${col}" stroke-width="${isCur ? 2.5 : 1.8}" opacity="${op}"/>
+            <g transform="rotate(${st.rot})" opacity="${op}">${svgSymPath(st.sym, isCur ? '#FFFFFF' : col)}</g>
+          </g>
+        `;
+      });
+      svg.innerHTML = html;
+    }
+
+    function updateBubble(st) {
+      document.getElementById('bubble-sym').textContent = st.sym;
+      document.getElementById('bubble-pos').textContent = `第${st.r}圈 · 第${st.n}针`;
+      document.getElementById('bubble-name').textContent = st.name;
+      document.getElementById('bubble-tip').textContent = st.tip;
+    }
+
+    function jumpPattern(idx) {
+      state.patIdx = idx;
+      renderPattern();
+      playTap(560, 0.05);
+    }
+
+    function nextPatternStep() {
+      const len = PATTERNS[state.patId].list.length;
+      if (state.patIdx < len - 1) {
+        state.patIdx++;
+        renderPattern();
+        playTap(620, 0.06);
+      } else {
+        playSuccessChime();
+        showToast('🎉 本套图解已全部跟练完成！');
+      }
+    }
+
+    function prevPatternStep() {
+      if (state.patIdx > 0) {
+        state.patIdx--;
+        renderPattern();
+        playTap(470, 0.05);
+      }
+    }
+
+    function resetPatternStep() {
+      state.patIdx = 0;
+      renderPattern();
+      playTap(420, 0.07);
+      showToast('跟练进度已重置');
+    }
+
+    /* --- 12x12 DIY 画板 --- */
+    const DIY_TOOLS = [
+      { sym: '◯', name: '锁针' },
+      { sym: 'X', name: '短针' },
+      { sym: 'F', name: '长针' },
+      { sym: 'V', name: '加针' },
+      { sym: 'A', name: '减针' },
+      { sym: 'ERASE', name: '橡皮' }
+    ];
+
+    function initDiy() {
+      const toolsBox = document.getElementById('diy-tools');
+      toolsBox.innerHTML = DIY_TOOLS.map(t => `
+        <button class="diy-tool-btn ${t.sym === state.diyTool ? 'active' : ''}" data-tool="${t.sym}" onclick="setDiyTool('${t.sym}')">
+          <span>${t.sym === 'ERASE' ? '⌫' : t.sym}</span>
+          <span>${t.name}</span>
+        </button>
+      `).join('');
+
+      const grid = document.getElementById('diy-grid');
+      grid.innerHTML = '';
+      for (let i = 0; i < 144; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'diy-cell';
+        cell.dataset.idx = i;
+        cell.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          pushDiyHistory();
+          state.diyDrawing = true;
+          paintCell(i);
+        });
+        grid.appendChild(cell);
+      }
+
+      grid.addEventListener('pointermove', (e) => {
+        if (!state.diyDrawing) return;
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const cell = el && el.closest ? el.closest('.diy-cell') : null;
+        if (cell && cell.dataset.idx !== undefined) {
+          paintCell(parseInt(cell.dataset.idx, 10));
+        }
+      });
+
+      window.addEventListener('pointerup', () => { state.diyDrawing = false; });
+      window.addEventListener('pointercancel', () => { state.diyDrawing = false; });
+    }
+
+    function pushDiyHistory() {
+      state.diyHistory.push(state.diyData.map(c => c ? { ...c } : null));
+      if (state.diyHistory.length > 25) state.diyHistory.shift();
+    }
+
+    function setDiyTool(sym) {
+      state.diyTool = sym;
+      document.querySelectorAll('.diy-tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool === sym));
+      playTap(560, 0.05);
+    }
+
+    function setDiyColor(col) {
+      state.diyColor = col;
+      document.querySelectorAll('.diy-color').forEach(b => b.classList.toggle('active', b.dataset.color === col));
+      playTap(600, 0.05);
+    }
+
+    function paintCell(idx) {
+      const next = state.diyTool === 'ERASE' ? null : { sym: state.diyTool, color: state.diyColor };
+      const cur = state.diyData[idx];
+      if ((cur === null && next === null) || (cur && next && cur.sym === next.sym && cur.color === next.color)) return;
+      state.diyData[idx] = next;
+      renderDiyCells();
+      playTap(640, 0.025);
+    }
+
+    function renderDiyCells() {
+      const cells = document.getElementById('diy-grid').children;
+      let cnt = 0;
+      for (let i = 0; i < 144; i++) {
+        const d = state.diyData[i];
+        if (d) {
+          cnt++;
+          cells[i].innerHTML = `<svg viewBox="-10 -10 20 20" width="82%" height="82%">${svgSymPath(d.sym, d.color)}</svg>`;
+        } else {
+          cells[i].innerHTML = '';
+        }
+      }
+      document.getElementById('diy-count').textContent = `已画 ${cnt} 针`;
+    }
+
+    function undoDiy() {
+      if (state.diyHistory.length === 0) {
+        showToast('没有可撤销的步骤了');
+        return;
+      }
+      state.diyData = state.diyHistory.pop();
+      renderDiyCells();
+      playTap(460, 0.06);
+    }
+
+    function clearDiy() {
+      pushDiyHistory();
+      state.diyData.fill(null);
+      renderDiyCells();
+      playTap(400, 0.07);
+      showToast('画板已清空');
+    }
+
+    function exportDiyImage() {
+      try {
+        const size = 12, cell = 56, pad = 36;
+        const canvas = document.createElement('canvas');
+        canvas.width = size * cell + pad * 2;
+        canvas.height = size * cell + pad * 2 + 44;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#FBF7F2';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#3D2E27';
+        ctx.font = 'bold 22px -apple-system, "PingFang SC", sans-serif';
+        ctx.fillText('织梦坊 · 我的原创钩针图解', pad, 38);
+
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            const x = pad + c * cell;
+            const y = pad + 26 + r * cell;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.strokeStyle = '#E6D9CA';
+            ctx.lineWidth = 1.5;
+            ctx.fillRect(x, y, cell, cell);
+            ctx.strokeRect(x, y, cell, cell);
+
+            const d = state.diyData[r * size + c];
+            if (d) {
+              ctx.save();
+              ctx.translate(x + cell / 2, y + cell / 2);
+              ctx.strokeStyle = d.color;
+              ctx.fillStyle = d.color;
+              ctx.lineWidth = 3.2;
+              ctx.lineCap = 'round';
+              ctx.lineJoin = 'round';
+              ctx.beginPath();
+              if (d.sym === 'X') { ctx.moveTo(-11,-11); ctx.lineTo(11,11); ctx.moveTo(11,-11); ctx.lineTo(-11,11); ctx.stroke(); }
+              else if (d.sym === 'V') { ctx.moveTo(-11,-11); ctx.lineTo(0,11); ctx.lineTo(11,-11); ctx.stroke(); }
+              else if (d.sym === 'A') { ctx.moveTo(-11,11); ctx.lineTo(0,-11); ctx.lineTo(11,11); ctx.stroke(); }
+              else if (d.sym === 'F') { ctx.moveTo(0,14); ctx.lineTo(0,-14); ctx.moveTo(-10,-14); ctx.lineTo(10,-14); ctx.moveTo(-7,-2); ctx.lineTo(7,2); ctx.stroke(); }
+              else if (d.sym === '◯') { ctx.ellipse(0, 0, 12, 7.5, 0, 0, Math.PI * 2); ctx.stroke(); }
+              ctx.restore();
+            }
+          }
+        }
+
+        const url = canvas.toDataURL('image/png');
+        document.getElementById('export-img-preview').src = url;
+        document.getElementById('export-download-link').href = url;
+        document.getElementById('export-modal').classList.remove('hidden');
+        playSuccessChime();
+      } catch (err) {
+        showToast('生成图片失败，请重试');
+      }
+    }
+
+    /* =========================================================================
+       3. 模块三：手作工具箱（记行器 + 6种线材匹配 + 三语可搜索符号表）
+       ========================================================================= */
+    const STORE_KEY = 'zhimengfang_ios_v2';
+
+    function loadCounter() {
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+        if (raw) {
+          const d = JSON.parse(raw);
+          state.projectName = d.projectName || '';
+          state.rows = d.rows || 0;
+          state.stitches = d.stitches || 0;
+          state.targetRows = d.targetRows || 20;
+          state.targetStitches = d.targetStitches || 18;
+          if (typeof d.soundOn === 'boolean') state.soundOn = d.soundOn;
+        }
+      } catch (e) {}
+      document.getElementById('project-name-input').value = state.projectName;
+      document.getElementById('target-rows-in').value = state.targetRows;
+      document.getElementById('target-st-in').value = state.targetStitches;
+      renderCounter();
+      syncSoundUI();
+    }
+
+    function saveCounter() {
+      state.projectName = document.getElementById('project-name-input').value.trim();
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify({
+          projectName: state.projectName,
+          rows: state.rows,
+          stitches: state.stitches,
+          targetRows: state.targetRows,
+          targetStitches: state.targetStitches,
+          soundOn: state.soundOn
+        }));
+      } catch (e) {}
+    }
+
+    function pushCounterHist() {
+      state.counterHistory.push({ rows: state.rows, stitches: state.stitches });
+      if (state.counterHistory.length > 30) state.counterHistory.shift();
+    }
+
+    function updateTargets() {
+      const r = parseInt(document.getElementById('target-rows-in').value, 10);
+      const s = parseInt(document.getElementById('target-st-in').value, 10);
+      state.targetRows = isNaN(r) || r < 1 ? 1 : r;
+      state.targetStitches = isNaN(s) || s < 1 ? 1 : s;
+      renderCounter();
+      saveCounter();
+    }
+
+    function addRow(delta) {
+      pushCounterHist();
+      state.rows = Math.max(0, state.rows + delta);
+      renderCounter();
+      saveCounter();
+      if (delta > 0 && state.rows === state.targetRows) {
+        playSuccessChime();
+        showToast('🎉 已达成目标总行数！');
+      } else {
+        playTap(delta > 0 ? 520 : 420, 0.08);
+      }
+    }
+
+    function addStitch(delta) {
+      pushCounterHist();
+      let next = state.stitches + delta;
+      if (next >= state.targetStitches) {
+        state.stitches = 0;
+        state.rows++;
+        playSuccessChime();
+        showToast(`满 ${state.targetStitches} 针，自动进位至第 ${state.rows} 行`);
+      } else {
+        state.stitches = Math.max(0, next);
+        playTap(640, 0.055);
+      }
+      renderCounter();
+      saveCounter();
+    }
+
+    function undoCounter() {
+      if (state.counterHistory.length === 0) {
+        showToast('暂无可撤销的计数操作');
+        return;
+      }
+      const prev = state.counterHistory.pop();
+      state.rows = prev.rows;
+      state.stitches = prev.stitches;
+      renderCounter();
+      saveCounter();
+      playTap(450, 0.06);
+    }
+
+    function resetCounter() {
+      pushCounterHist();
+      state.rows = 0;
+      state.stitches = 0;
+      renderCounter();
+      saveCounter();
+      playTap(380, 0.08);
+      showToast('行数与针数已归零');
+    }
+
+    function renderCounter() {
+      document.getElementById('cnt-rows').textContent = state.rows;
+      document.getElementById('cnt-stitches').textContent = state.stitches;
+      document.getElementById('cnt-st-target').textContent = state.targetStitches;
+      const circ = 2 * Math.PI * 42;
+      const ratio = Math.min(1, state.rows / Math.max(1, state.targetRows));
+      document.getElementById('row-ring').style.strokeDashoffset = circ * (1 - ratio);
+    }
+
+    /* --- 6种线材与钩针匹配器 --- */
+    const YARN_DB = [
+      { id: 'lace', name: '蕾丝线', sub: '8号/5号', color: '#D99B9B', hook: '1.25mm - 1.75mm', jp: '蕾丝 4号 - 0号', dia: '线径约 0.8mm', px: 4, use: '精致耳饰、蕾丝杯垫、微型玩偶、书签花边' },
+      { id: 'milk4', name: '4股牛奶棉', sub: '新手百搭', color: '#D97757', hook: '2.5mm - 3.0mm', jp: '4/0 - 5/0 号', dia: '线径约 2.0mm', px: 8, use: '毛线玩偶、小花束、杯垫、发夹、零钱包' },
+      { id: 'combed5', name: '5股精梳棉', sub: '亲肤不起球', color: '#7A9A7E', hook: '3.0mm - 3.5mm', jp: '5/0 - 6/0 号', dia: '线径约 2.5mm', px: 11, use: '祖母方格毯、水杯套、夏日钩织包、宝宝衣物' },
+      { id: 'lover8', name: '8股情人棉', sub: '软糯蓬松', color: '#D9A441', hook: '4.0mm - 5.0mm', jp: '7/0 - 8/0 号', dia: '线径约 3.8mm', px: 15, use: '冬日围巾、保暖毛线帽、软糯针织托特包' },
+      { id: 'ice', name: '冰条线', sub: '粗绒速成', color: '#6E8CA8', hook: '6.0mm - 8.0mm', jp: '特粗号钩针', dia: '线径约 6.0mm', px: 20, use: '蓬松大包包、萌宠猫窝、巨型抱枕、地垫' },
+      { id: 'cloth', name: '布条线', sub: '挺括有型', color: '#9B8273', hook: '7.0mm - 9.0mm', jp: '特粗号钩针', dia: '线径约 7.5mm+', px: 24, use: '桌面收纳篮、立挺菜篮包、厚实隔热垫' }
+    ];
+
+    function renderYarnMatcher() {
+      document.getElementById('yarn-cards').innerHTML = YARN_DB.map(y => `
+        <button class="yarn-card ${y.id === state.yarnMatchId ? 'active' : ''}" onclick="selectYarn('${y.id}')">
+          <span style="width:16px; height:16px; border-radius:50%; background:${y.color}; flex-shrink:0;"></span>
+          <div style="min-width:0;">
+            <div style="font-size:13px; font-weight:700; color:var(--text-main);">${y.name}</div>
+            <div style="font-size:10.5px; color:var(--text-muted);">${y.sub}</div>
+          </div>
+        </button>
+      `).join('');
+
+      const item = YARN_DB.find(y => y.id === state.yarnMatchId);
+      document.getElementById('ym-hook').textContent = item.hook;
+      document.getElementById('ym-jp').textContent = item.jp;
+      document.getElementById('ym-dia').textContent = item.dia;
+      document.getElementById('ym-use').textContent = item.use;
+
+      document.getElementById('ym-bar-svg').innerHTML = `
+        <line x1="16" y1="16" x2="160" y2="16" stroke="${item.color}" stroke-width="${item.px}" stroke-linecap="round"/>
+        <text x="16" y="42" font-size="11" fill="#847065">线材粗细示意</text>
+        <line x1="195" y1="16" x2="342" y2="16" stroke="#B7AEA3" stroke-width="${item.px + 1}" stroke-linecap="round"/>
+        <text x="195" y="42" font-size="11" fill="#847065">推荐钩针 (${item.hook})</text>
+      `;
+    }
+
+    function selectYarn(id) {
+      state.yarnMatchId = id;
+      renderYarnMatcher();
+      playTap(580, 0.05);
+    }
+
+    /* --- 中/美/英三语可搜索符号表 --- */
+    const SYMBOLS_DB = [
+      { sym: '◯', cn: '锁针 / 辫子针', abbr: 'CH', us: 'ch (chain)', uk: 'ch', desc: '起针地基与每行起立高度针法' },
+      { sym: '•', cn: '引拔针', abbr: 'SL', us: 'sl st', uk: 'ss', desc: '无高度，用于圈钩收口与边缘过渡' },
+      { sym: 'X', cn: '短针', abbr: 'SC', us: 'sc (single)', uk: 'dc', desc: '最紧密扎实，玩偶与杯垫主力针法' },
+      { sym: 'T', cn: '中长针', abbr: 'HDC', us: 'hdc', uk: 'htr', desc: '先绕线1次，一次拉过全部3个线圈' },
+      { sym: 'F', cn: '长针', abbr: 'DC', us: 'dc (double)', uk: 'tr', desc: '先绕线1次，分两次各退2个线圈' },
+      { sym: 'E', cn: '长长针', abbr: 'TR', us: 'tr (treble)', uk: 'dtr', desc: '先绕线2次，分三次各退2个线圈' },
+      { sym: 'V', cn: '短针加针', abbr: 'INC', us: 'inc (2 sc)', uk: 'inc', desc: '同一针目内钩入 2 个短针' },
+      { sym: 'A', cn: '短针减针', abbr: 'DEC', us: 'dec (sc2tog)', uk: 'dec', desc: '将相邻 2 针合并为 1 针' },
+      { sym: 'FLO', cn: '挑前半针', abbr: 'FLO', us: 'Front Loop', uk: 'FLO', desc: '只挑 V 字辫子靠近自己的一根线' },
+      { sym: 'BLO', cn: '挑后半针', abbr: 'BLO', us: 'Back Loop', uk: 'BLO', desc: '只挑远离自己的一根线，可做罗纹' },
+      { sym: 'MR', cn: '环形起针', abbr: 'MR', us: 'Magic Ring', uk: 'Magic Loop', desc: '可拉紧闭合的无孔洞圆形起针' }
+    ];
+
+    function renderSymbolTable() {
+      const kw = (document.getElementById('sym-search').value || '').trim().toLowerCase();
+      const filtered = SYMBOLS_DB.filter(s =>
+        !kw ||
+        s.cn.toLowerCase().includes(kw) ||
+        s.abbr.toLowerCase().includes(kw) ||
+        s.us.toLowerCase().includes(kw) ||
+        s.uk.toLowerCase().includes(kw) ||
+        s.sym.toLowerCase().includes(kw)
+      );
+
+      const box = document.getElementById('sym-table-list');
+      if (filtered.length === 0) {
+        box.innerHTML = `<div style="text-align:center; padding:20px; font-size:13px; color:var(--text-muted);">未找到匹配的针法符号，试试搜索「短针」或「dc」</div>`;
+        return;
+      }
+
+      box.innerHTML = filtered.map(s => `
+        <div class="sym-row">
+          <div style="width:40px; height:40px; border-radius:11px; background:#fff; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            ${s.sym.length <= 1
+              ? `<svg viewBox="-10 -10 20 20" width="24" height="24">${svgSymPath(s.sym, '#D97757')}</svg>`
+              : `<span style="font-size:11px; font-weight:800; color:var(--primary);">${s.sym}</span>`
+            }
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+              <strong style="font-size:13.5px;">${s.cn}</strong>
+              <span class="badge badge-sage">${s.abbr}</span>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">US: <strong style="color:var(--text-main);">${s.us}</strong> · UK: ${s.uk}</div>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${s.desc}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /* =========================================================================
+       4. 模块四：趣味通关测验（8道互动题 + 段位勋章）
+       ========================================================================= */
+    const QUIZ_LIST = [
+      {
+        tag: '符号识别',
+        q: '下方图解中，带有一根斜杠的高柱符号代表哪种基础针法？',
+        svg: `<svg viewBox="-20 -20 40 40" width="66" height="66"><path d="M0,13 L0,-13 M-9,-13 L9,-13 M-6,-2 L6,2" stroke="#D97757" stroke-width="3" stroke-linecap="round"/></svg>`,
+        opts: ['短针 (SC / X)', '中长针 (HDC / T)', '长针 (DC / F)', '长长针 (TR / E)'],
+        ans: 2,
+        exp: 'T 字柱带 1 根斜杠代表入针前绕线 1 次的「长针 (DC / F)」；无斜杠是中长针，2 根斜杠是长长针。'
+      },
+      {
+        tag: '翻车排查',
+        q: '钩圆形杯垫时，发现边缘像「荷叶边」一样起波浪不平整，主要原因是？',
+        svg: `<svg viewBox="0 0 180 56" width="160" height="50"><path d="M10 34 Q30 8 50 34 T90 34 T130 34 T170 34" fill="none" stroke="#D97757" stroke-width="4.5" stroke-linecap="round"/></svg>`,
+        opts: ['加针太多了，外圈针数拥挤', '加针太少了，针数不够', '毛线颜色选得太浅', '忘记剪断线头'],
+        ans: 0,
+        exp: '起波浪（荷叶边）是因为外圈针数过多而隆起！核对是否多加了针，或换小半号钩针即可改善。'
+      },
+      {
+        tag: '翻车排查',
+        q: '反过来，如果圆片四周向上翘起卷成了「小碗状」，应该怎么调整？',
+        svg: `<svg viewBox="0 0 180 56" width="160" height="50"><path d="M26 12 Q90 60 154 12" fill="none" stroke="#7A9A7E" stroke-width="4.5" stroke-linecap="round"/></svg>`,
+        opts: ['减少每圈的加针数量', '检查是否漏加针，或手势太紧需换大一号钩针', '改用引拔针钩满整圈', '直接用手强行拉平'],
+        ans: 1,
+        exp: '圆片卷成碗状说明外圈针数偏少或拉线太紧！检查是否漏了加针（V），或者放松手势、换大 0.5mm 钩针。'
+      },
+      {
+        tag: '符号识别',
+        q: '在图解简写中，符号「V」和「A」分别代表什么意思？',
+        svg: `<svg viewBox="0 0 140 48" width="130" height="44"><path d="M24 10 L39 38 L54 10" fill="none" stroke="#D97757" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M86 38 L101 10 L116 38" fill="none" stroke="#7A9A7E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        opts: ['V 是减针，A 是加针', 'V 是短针加针，A 是短针减针', 'V 是长针，A 是锁针', 'V 是引拔针，A 是环形起针'],
+        ans: 1,
+        exp: '超好记的象形口诀：V 上宽下窄（1变2，即加针）；A 上窄下宽（2并1，即减针）！'
+      },
+      {
+        tag: '加针规律',
+        q: '经典 6 针短针圆片：R1(6X) → R2(6V) → R3((X,V)×6) → R4((X,V,X)×6)，第 4 圈钩完共有多少针？',
+        svg: null,
+        opts: ['18 针', '20 针', '24 针', '30 针'],
+        ans: 2,
+        exp: '6 针起头的标准圆片每圈固定增加 6 针：R1=6、R2=12、R3=18、R4=24 针！'
+      },
+      {
+        tag: '针法口诀',
+        q: '钩长针 (DC) 入针拉出线后钩针上有 3 个线圈，接下来正确的并针动作是？',
+        svg: null,
+        opts: ['一口气拉过全部 3 个线圈', '绕线先退 2 圈，再绕线退最后 2 圈', '绕线先退 1 圈，再退 2 圈', '直接抽掉钩针'],
+        ans: 1,
+        exp: '长针口诀是「退二再退二」；如果一口气全拉过 3 个线圈，钩出来的就是中长针 (HDC) 啦。'
+      },
+      {
+        tag: '翻车排查',
+        q: '新手片钩围巾时常常越钩越窄变成「梯形」，最常见的原因是？',
+        svg: null,
+        opts: ['毛线自带缩水效果', '每行开头或结尾漏钩了最边缘的那一针', '钩针太光滑', '没有使用环形起针'],
+        ans: 1,
+        exp: '片钩最容易漏掉行尾偏斜的最后一针！建议在每行第 1 针和最后 1 针扣上记号扣。'
+      },
+      {
+        tag: '术语速查',
+        q: '钩玩偶做「隐形减针」时，图解常提示只挑前半根线，它的英文缩写是？',
+        svg: null,
+        opts: ['BLO', 'FLO', 'SL', 'MR'],
+        ans: 1,
+        exp: 'FLO = Front Loop Only（只挑前半针），配合减针使用可以让玩偶表面平滑无缝不露棉！'
+      }
+    ];
+
+    function renderQuiz() {
+      const q = QUIZ_LIST[state.quizIdx];
+      state.quizLocked = false;
+      document.getElementById('quiz-num-badge').textContent = `第 ${state.quizIdx + 1} / ${QUIZ_LIST.length} 题`;
+      document.getElementById('quiz-tag-badge').textContent = q.tag;
+      document.getElementById('quiz-live-score').textContent = Math.round(state.quizScore);
+      document.getElementById('quiz-bar').style.width = `${((state.quizIdx + 1) / QUIZ_LIST.length) * 100}%`;
+      document.getElementById('quiz-question').textContent = q.q;
+
+      const svgBox = document.getElementById('quiz-svg-box');
+      if (q.svg) {
+        svgBox.innerHTML = q.svg;
+        svgBox.classList.remove('hidden');
+      } else {
+        svgBox.classList.add('hidden');
+      }
+
+      const keys = ['A', 'B', 'C', 'D'];
+      document.getElementById('quiz-options').innerHTML = q.opts.map((o, i) => `
+        <button class="quiz-opt" onclick="chooseQuiz(${i})">
+          <span class="opt-key">${keys[i]}</span>
+          <span>${o}</span>
+        </button>
+      `).join('');
+
+      document.getElementById('quiz-feedback').classList.add('hidden');
+      document.getElementById('quiz-next-btn').textContent = state.quizIdx === QUIZ_LIST.length - 1 ? '查看我的手作段位 →' : '下一题 →';
+    }
+
+    function chooseQuiz(idx) {
+      if (state.quizLocked) return;
+      state.quizLocked = true;
+      const q = QUIZ_LIST[state.quizIdx];
+      const ok = idx === q.ans;
+      if (ok) {
+        state.quizScore += 12.5;
+        playSuccessChime();
+      } else {
+        playTap(300, 0.12);
+      }
+      document.getElementById('quiz-live-score').textContent = Math.round(state.quizScore);
+
+      document.querySelectorAll('.quiz-opt').forEach((btn, i) => {
+        if (i === q.ans) btn.classList.add('correct');
+        else if (i === idx && !ok) btn.classList.add('wrong');
+        else btn.style.opacity = '0.55';
+      });
+
+      const fb = document.getElementById('quiz-feedback');
+      fb.classList.remove('hidden');
+      fb.style.background = ok ? '#F2F7F2' : '#FDF3EE';
+      fb.style.border = ok ? '1px solid rgba(122,154,126,0.4)' : '1px solid rgba(217,119,87,0.4)';
+      document.getElementById('quiz-fb-title').textContent = ok ? '✓ 回答正确，真棒！' : '✦ 差一点点，看看解析吧：';
+      document.getElementById('quiz-fb-title').style.color = ok ? 'var(--sage-dark)' : 'var(--primary-dark)';
+      document.getElementById('quiz-fb-exp').textContent = q.exp;
+    }
+
+    function nextQuiz() {
+      if (state.quizIdx < QUIZ_LIST.length - 1) {
+        state.quizIdx++;
+        renderQuiz();
+        playTap(540, 0.05);
+      } else {
+        showQuizResult();
+      }
+    }
+
+    function showQuizResult() {
+      document.getElementById('quiz-play-card').classList.add('hidden');
+      document.getElementById('quiz-result-card').classList.remove('hidden');
+      const score = Math.round(state.quizScore);
+      const right = Math.round(state.quizScore / 12.5);
+      document.getElementById('rank-correct').textContent = `${right} / ${QUIZ_LIST.length}`;
+      document.getElementById('rank-score').textContent = `${score} 分`;
+
+      let icon = '🌱', title = '毛线小萌新', desc = '迈出了钩针手作的第一步！多去「针法」里跟着动画练几遍，很快就能上手独立完成作品啦。';
+      if (score >= 95) {
+        icon = '👑'; title = '钩针大师'; desc = '太棒了！图解符号、圆片加减针和翻车排查全都难不倒你，快去钩出属于你的治愈作品吧！';
+      } else if (score >= 75) {
+        icon = '🧶'; title = '织梦匠人'; desc = '基础非常扎实，已经能独立看懂绝大多数国内外图解，细节再打磨一下就是大师级啦！';
+      } else if (score >= 50) {
+        icon = '🌷'; title = '巧手织女'; desc = '掌握了核心基础概念！可以重点复习一下圆片加针规律和三语符号速查表。';
+      }
+      document.getElementById('rank-icon').textContent = icon;
+      document.getElementById('rank-title').textContent = title;
+      document.getElementById('rank-desc').textContent = desc;
+      playSuccessChime();
+    }
+
+    function restartQuiz() {
+      state.quizIdx = 0;
+      state.quizScore = 0;
+      document.getElementById('quiz-result-card').classList.add('hidden');
+      document.getElementById('quiz-play-card').classList.remove('hidden');
+      renderQuiz();
+      playTap(560, 0.06);
+    }
+
+    /* =========================================================================
+       5. 初始化入口
+       ========================================================================= */
+    window.addEventListener('DOMContentLoaded', () => {
+      initIosPwaAssets();
+      renderStitchCapsules();
+      renderStudio();
+      renderPattern();
+      initDiy();
+      loadCounter();
+      renderYarnMatcher();
+      renderSymbolTable();
+      renderQuiz();
+    });
+  </script>
+</body>
+</html>
